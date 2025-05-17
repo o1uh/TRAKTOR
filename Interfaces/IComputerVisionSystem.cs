@@ -1,33 +1,28 @@
-// Interfaces/IComputerVisionSystem.cs
-namespace TractorAutopilot.Interfaces
+using Traktor.DataModels;
+
+namespace Traktor.Interfaces
 {
     public interface IComputerVisionSystem
     {
         /// <summary>
-        /// Обнаруживает препятствия в поле зрения.
+        /// Обнаруживает препятствия на поле.
         /// </summary>
-        /// <returns>Массив координат препятствий.</returns>
-        Obstacle[] DetectObstacles();
+        /// <param name="sensorInput">Опциональные "сырые" данные с сенсора.</param>
+        /// <returns>
+        /// Список <see cref="ObstacleData"/> обнаруженных препятствий.
+        /// Пустой список, если препятствий нет.
+        /// </returns>
+        List<ObstacleData> DetectObstacles(object sensorInput = null);
 
         /// <summary>
-        /// Анализирует состояние поля (растения, почва и т.д.).
+        /// Анализирует состояние выбранных точек/участков поля.
         /// </summary>
-        /// <returns>Информация о состоянии поля.</returns>
-        FieldAnalysisData AnalyzeField();
-    }
-
-    // Вспомогательные структуры для представления данных
-    public struct Obstacle
-    {
-        public double X;
-        public double Y;
-        public double Z;
-    }
-
-    public struct FieldAnalysisData
-    {
-        public double AveragePlantHeight;
-        public double SoilMoisture;
-        // Другие параметры анализа поля
+        /// <param name="targetCoordinates">Список координат точек/участков для анализа. Если null или пуст, может анализировать текущую зону видимости.</param>
+        /// <param name="sensorInput">Опциональные "сырые" данные с сенсора.</param>
+        /// <returns>
+        /// Список <see cref="FieldPointAnalysis"/> с результатами анализа для каждой запрошенной точки/участка.
+        /// Может вернуть пустой список, если анализ не дал результатов.
+        /// </returns>
+        List<FieldPointAnalysis> AnalyzeFieldPoints(List<Coordinates> targetCoordinates = null, object sensorInput = null);
     }
 }
