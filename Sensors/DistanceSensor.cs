@@ -2,25 +2,35 @@ using Traktor.Interfaces;
 
 namespace Traktor.Sensors
 {
+    /// <summary>
+    /// Имитирует работу датчика расстояния.
+    /// </summary>
     public class DistanceSensor : ISensors<double>
     {
-        // Можно добавить конструктор, если датчику нужна какая-то конфигурация
-        // public DistanceSensor() { }
+        private static readonly Random _random = new Random(); // Лучше использовать один экземпляр Random
+
+        /// <summary>
+        /// Инициализирует новый экземпляр класса <see cref="DistanceSensor"/>.
+        /// </summary>
+        public DistanceSensor()
+        {
+            // Конструктор может быть использован для инициализации подключения к реальному датчику
+            // или для установки начальных параметров симуляции.
+            Console.WriteLine($"[Sensors/DistanceSensor.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Датчик расстояния инициализирован.");
+        }
 
         /// <summary>
         /// Имитирует получение данных о расстоянии от датчика.
         /// </summary>
-        /// <returns>Измеренное расстояние в метрах.</returns>
+        /// <returns>Измеренное расстояние в метрах (случайное значение от 0.1 до 50.0 для макета).</returns>
         public double GetData()
         {
             // В реальной системе здесь будет код для взаимодействия с аппаратным датчиком.
             // Для макета имитируем данные.
-            Random rnd = new Random();
+
             // Предположим, датчик может "видеть" от 0.1 до 50 метров.
-            // И иногда может вернуть "ошибку" или невалидное значение (например, -1 или double.NaN).
-            // Пока для простоты вернем случайное валидное значение для тестов.
-            double distance = 0.1 + rnd.NextDouble() * (50.0 - 0.1);
-            Console.WriteLine($"[DistanceSensor]: Зафиксировано расстояние: {distance:F2} м"); // Временный вывод для отладки
+            double distance = 0.1 + _random.NextDouble() * (50.0 - 0.1);
+            Console.WriteLine($"[Sensors/DistanceSensor.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Зафиксировано расстояние: {distance:F2} м");
             return distance;
         }
     }

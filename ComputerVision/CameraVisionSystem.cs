@@ -1,92 +1,174 @@
 using Traktor.Interfaces;
 using Traktor.DataModels;
+using System.Drawing; // Для Bitmap
 
 namespace Traktor.ComputerVision
 {
+    /// <summary>
+    /// Реализация системы компьютерного зрения на основе анализа изображений с камер.
+    /// Получает данные от сенсора камеры для анализа.
+    /// </summary>
     public class CameraVisionSystem : IComputerVisionSystem
     {
-        private readonly Random _random = new Random();
+        private static readonly Random _random = new Random();
         private bool _isSystemActive = true;
+        private readonly ISensors<Bitmap> _cameraSensor; // Зависимость от сенсора камеры
 
-        
-        public CameraVisionSystem()
+        /// <summary>
+        /// Инициализирует новый экземпляр класса <see cref="CameraVisionSystem"/>.
+        /// </summary>
+        /// <param name="cameraSensor">Сенсор камеры, предоставляющий изображения для анализа.</param>
+        /// <exception cref="ArgumentNullException">Если cameraSensor равен null.</exception>
+        public CameraVisionSystem(ISensors<Bitmap> cameraSensor)
         {
-            Console.WriteLine("[CameraVisionSystem]: Инициализирована.");
+            _cameraSensor = cameraSensor ?? throw new ArgumentNullException(nameof(cameraSensor));
+            // _isSystemActive = true; // По умолчанию активна
+            Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Система технического зрения на базе камер инициализирована и связана с сенсором камеры. Активна: {_isSystemActive}");
         }
 
+        /// <inheritdoc/>
         public List<ObstacleData> DetectObstacles(Coordinates currentTractorPosition)
         {
             if (!_isSystemActive)
             {
-                Console.WriteLine("[CameraVisionSystem]: DetectObstacles - система не активна.");
+                Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles: Система камер не активна. Обнаружение препятствий невозможно.");
                 return new List<ObstacleData>();
             }
 
-            Console.WriteLine($"[CameraVisionSystem]: Обнаружение препятствий по данным камеры. Трактор в: {currentTractorPosition}");
-            List<ObstacleData> detected = new List<ObstacleData>();
-
-            if (_random.Next(0, 4) == 0)
+            Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles: Запрос данных с камеры для обнаружения препятствий. Текущая позиция трактора: {currentTractorPosition}");
+            Bitmap currentFrame = null;
+            try
             {
-                // Генерируем препятствие "впереди" трактора
-                double offsetY = 1.0 + _random.NextDouble() * 4.0;
-                double offsetX = (_random.NextDouble() - 0.5) * 2.0;
+                currentFrame = _cameraSensor.GetData();
+                if (currentFrame == null)
+                {
+                    Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles: Не удалось получить кадр с камеры (null).");
+                    return new List<ObstacleData>();
+                }
+                Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles: Получен кадр с камеры {currentFrame.Width}x{currentFrame.Height}. Имитация анализа...");
+                // Здесь был бы сложный анализ currentFrame...
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles: Ошибка при получении или обработке кадра с камеры: {ex.Message}");
+                return new List<ObstacleData>();
+            }
+            finally
+            {
+                currentFrame?.Dispose(); // Важно освобождать ресурсы Bitmap
+            }
+
+            List<ObstacleData> detectedObstacles = new List<ObstacleData>();
+            // Имитация обнаружения препятствий на основе "анализа" кадра
+            // Можно использовать currentFrame.Height/Width или даже попытаться извлечь imageCounter для влияния на рандом,
+            // но для простоты оставим как было, но сам факт получения кадра важен.
+            if (_random.Next(0, 5) == 0)
+            {
+                const double metersToDegreesApproximation = 0.000009;
+                double distanceForward = (1.0 + _random.NextDouble() * 5.0) * metersToDegreesApproximation;
+                double sideOffset = (_random.NextDouble() - 0.5) * 2.0 * metersToDegreesApproximation;
 
                 Coordinates obstaclePos = new Coordinates(
-                    currentTractorPosition.Latitude + offsetY,
-                    currentTractorPosition.Longitude + offsetX
+                    currentTractorPosition.Latitude + distanceForward,
+                    currentTractorPosition.Longitude + sideOffset
                 );
-                string description = _random.Next(0, 2) == 0 ? "Камень (камера)" : "Низкая ветка (камера)";
 
-                detected.Add(new ObstacleData(obstaclePos, description));
-                Console.WriteLine($"[CameraVisionSystem]: Обнаружено: {description} в {obstaclePos}");
+                string description = _random.Next(0, 2) == 0 ? "Небольшой камень (камера)" : "Низко висящая ветка (камера)";
+
+                detectedObstacles.Add(new ObstacleData(obstaclePos, description));
+                Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles: По результатам анализа кадра обнаружено: \"{description}\" в {obstaclePos}");
             }
-            else { Console.WriteLine("[CameraVisionSystem]: Препятствий по данным камеры не обнаружено."); }
-            return detected;
+            else
+            {
+                Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles: Препятствий по данным анализа кадра не обнаружено.");
+            }
+            return detectedObstacles;
         }
 
-        public List<FieldFeatureData> AnalyzeFieldFeatures(Coordinates currentTractorPosition) // Убран areaOfInterest
+        /// <inheritdoc/>
+        public List<FieldFeatureData> AnalyzeFieldFeatures(Coordinates currentTractorPosition)
         {
             if (!_isSystemActive)
             {
-                Console.WriteLine("[CameraVisionSystem]: AnalyzeFieldFeatures - система не активна.");
+                Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures: Система камер не активна. Анализ особенностей поля невозможен.");
                 return new List<FieldFeatureData>();
             }
 
-            // Имитация получения данных с камеры и их обработки
-            Console.WriteLine($"[CameraVisionSystem]: Анализ сорняков по данным камеры во всей видимой зоне. Трактор в: {currentTractorPosition}.");
-            List<FieldFeatureData> features = new List<FieldFeatureData>();
+            Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures: Запрос данных с камеры для анализа особенностей поля. Текущая позиция трактора: {currentTractorPosition}.");
+            Bitmap currentFrame = null;
+            try
+            {
+                currentFrame = _cameraSensor.GetData();
+                if (currentFrame == null)
+                {
+                    Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures: Не удалось получить кадр с камеры (null).");
+                    return new List<FieldFeatureData>();
+                }
+                Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures: Получен кадр с камеры {currentFrame.Width}x{currentFrame.Height}. Имитация анализа...");
+                // Анализ currentFrame на сорняки и т.д.
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures: Ошибка при получении или обработке кадра с камеры: {ex.Message}");
+                return new List<FieldFeatureData>();
+            }
+            finally
+            {
+                currentFrame?.Dispose();
+            }
 
+            List<FieldFeatureData> detectedFeatures = new List<FieldFeatureData>();
             if (_random.Next(0, 3) == 0)
             {
-                int numberOfPatches = _random.Next(1, 2);
-                for (int i = 0; i < numberOfPatches; i++)
+                int numberOfFeatures = _random.Next(1, 4);
+                for (int i = 0; i < numberOfFeatures; i++)
                 {
-                    // Генерируем координаты сорняков "рядом" с трактором в его "поле зрения"
-                    // "Поле зрения" - условно, в некотором радиусе или впереди
-                    double range = 5.0; // Максимальное расстояние "обзора" для сорняков
-                    double angle = _random.NextDouble() * 2 * Math.PI; // Случайный угол
-                    double distance = _random.NextDouble() * range;    // Случайное расстояние в пределах range
+                    const double metersToDegreesApproximation = 0.000009;
+                    double range = (1.0 + _random.NextDouble() * 4.0) * metersToDegreesApproximation;
+                    double angle = _random.NextDouble() * Math.PI - Math.PI / 2;
 
-                    // Пересчитываем в смещения (очень упрощенно, без учета реальной ориентации трактора)
-                    // Предположим, что Latitude - это "вперед/назад", Longitude - "влево/вправо"
-                    double offsetY = Math.Sin(angle) * distance;
-                    double offsetX = Math.Cos(angle) * distance;
+                    double offsetY = Math.Sin(angle) * range;
+                    double offsetX = Math.Cos(angle) * range;
 
-                    Coordinates weedPos = new Coordinates(
-                        currentTractorPosition.Latitude + offsetY,
-                        currentTractorPosition.Longitude + offsetX
+                    Coordinates featurePos = new Coordinates(
+                        currentTractorPosition.Latitude + offsetX,
+                        currentTractorPosition.Longitude + offsetY
                     );
 
-                    features.Add(new FieldFeatureData(weedPos, FeatureType.DangerousWeed, "Одиночный экземпляр"));
-                    Console.WriteLine($"[CameraVisionSystem]: Обнаружен опасный сорняк в {weedPos}");
+                    FeatureType type = FeatureType.Unknown;
+                    string details = "";
+                    int typeRoll = _random.Next(0, 3);
+                    if (typeRoll == 0) { type = FeatureType.DangerousWeed; details = "Очаг пырея (камера)"; }
+                    else if (typeRoll == 1) { type = FeatureType.PestInfestation; details = "Личинки (камера)"; }
+                    else { type = FeatureType.WaterLogging; details = "Небольшая лужа (камера)"; }
+
+                    detectedFeatures.Add(new FieldFeatureData(featurePos, type, details));
+                    Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures: По результатам анализа кадра обнаружена особенность: {type} \"{details}\" в {featurePos}");
                 }
             }
-            else { Console.WriteLine("[CameraVisionSystem]: Опасных сорняков не обнаружено в видимой зоне."); }
-            return features;
+            else
+            {
+                Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures: Агрономических особенностей по данным анализа кадра не обнаружено.");
+            }
+            return detectedFeatures;
         }
 
-        // Методы активации/деактивации можно оставить, если ControlUnit будет ими управлять
-        public void ActivateSystem() { _isSystemActive = true; Console.WriteLine("[CameraVisionSystem]: Активирована."); }
-        public void DeactivateSystem() { _isSystemActive = false; Console.WriteLine("[CameraVisionSystem]: Деактивирована."); }
+        /// <summary>
+        /// Активирует систему камер (внутренний флаг).
+        /// </summary>
+        public void ActivateInternal()
+        {
+            _isSystemActive = true;
+            Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Система камер внутренне активирована.");
+        }
+
+        /// <summary>
+        /// Деактивирует систему камер (внутренний флаг).
+        /// </summary>
+        public void DeactivateInternal()
+        {
+            _isSystemActive = false;
+            Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Система камер внутренне деактивирована.");
+        }
     }
 }

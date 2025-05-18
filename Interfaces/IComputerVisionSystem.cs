@@ -1,23 +1,40 @@
-using Traktor.DataModels;
+using Traktor.DataModels;      // ƒл€ Coordinates, ObstacleData, FieldFeatureData
 
 namespace Traktor.Interfaces
 {
+    /// <summary>
+    /// ќпредел€ет контракт дл€ системы компьютерного зрени€.
+    /// —истема отвечает за анализ визуальной информации и данных с LiDAR.
+    /// </summary>
     public interface IComputerVisionSystem
     {
         /// <summary>
-        /// ќбнаруживает физические преп€тстви€ на поле.
-        /// —истема сама отвечает за получение данных со своих сенсоров.
+        /// ќбнаруживает физические преп€тстви€ в зоне видимости или действи€ сенсоров системы.
+        /// —истема самосто€тельно получает данные со своих камер и/или LiDAR.
         /// </summary>
-        /// <param name="currentTractorPosition">“екущее положение трактора.</param>
-        /// <returns>—писок обнаруженных преп€тствий <see cref="ObstacleData"/>.</returns>
+        /// <param name="currentTractorPosition">
+        /// “екущее положение трактора. »спользуетс€ дл€ определени€ области сканировани€
+        /// и корректной прив€зки координат обнаруженных преп€тствий.
+        /// </param>
+        /// <returns>
+        /// —писок обнаруженных преп€тствий <see cref="ObstacleData"/>.
+        /// ≈сли преп€тствий не обнаружено, возвращает пустой список.
+        /// </returns>
         List<ObstacleData> DetectObstacles(Coordinates currentTractorPosition);
 
         /// <summary>
-        /// јнализирует видимую зону пол€ дл€ обнаружени€ специфических особенностей (например, опасных сорн€ков).
-        /// —истема сама отвечает за получение данных со своих сенсоров.
+        /// јнализирует видимую зону пол€ дл€ идентификации специфических агрономических особенностей,
+        /// таких как сорн€ки, болезни растений, состо€ние почвы по цвету и т.д.
+        /// Ётот метод обычно реализуетс€ системами на основе камер.
         /// </summary>
-        /// <param name="currentTractorPosition">“екущее положение трактора (дл€ прив€зки найденных особенностей).</param>
-        /// <returns>—писок обнаруженных особенностей пол€ <see cref="FieldFeatureData"/>.</returns>
-        List<FieldFeatureData> AnalyzeFieldFeatures(Coordinates currentTractorPosition); // ”бран areaOfInterest
+        /// <param name="currentTractorPosition">
+        /// “екущее положение трактора. »спользуетс€ дл€ определени€ области анализа
+        /// и корректной прив€зки координат обнаруженных особенностей.
+        /// </param>
+        /// <returns>
+        /// —писок обнаруженных особенностей пол€ <see cref="FieldFeatureData"/>.
+        /// ≈сли особенностей не обнаружено, возвращает пустой список.
+        /// </returns>
+        List<FieldFeatureData> AnalyzeFieldFeatures(Coordinates currentTractorPosition);
     }
 }
