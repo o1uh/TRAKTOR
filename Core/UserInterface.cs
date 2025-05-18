@@ -32,9 +32,10 @@ namespace Traktor.Core
         public void Run()
         {
             Logger.Instance.Info(SourceFilePath, "Запуск основного цикла UserInterface.");
-            DisplayHelp(); // Показываем справку один раз в начале
+            Console.Clear();
+            DisplayHelp();
             Console.WriteLine("\nНажмите любую клавишу для первого отображения статуса...");
-            Console.ReadKey(true); // true, чтобы не отображать нажатую клавишу
+            Console.ReadKey(true);
 
             while (_keepRunning)
             {
@@ -43,41 +44,46 @@ namespace Traktor.Core
                 Console.Write("Введите команду (help для справки): ");
                 string input = Console.ReadLine()?.Trim().ToLower();
 
-                bool commandWasHelp = (input == "help");
-                bool commandWasExit = (input == "exit");
+                bool wasHelpCommand = (input == "help");
+                bool commandProcessedRequiresPause = false; // Флаг, что после ProcessInput нужна пауза
 
                 if (!string.IsNullOrWhiteSpace(input))
                 {
-                    // Очищаем экран перед выводом результата команды, если это команда, которая сама что-то выводит (help)
-                    // или если автопилот не работает (чтобы результат команды был на чистом экране).
-                    // Если автопилот работает, то DisplayStatus и так обновляет экран.
-                    if (commandWasHelp || !_controlUnit.IsOperating)
+                    if (wasHelpCommand) // Для help всегда очищаем перед выводом справки
+                    {
+                        Console.Clear();
+                    }
+                    // Для других команд при неработающем автопилоте тоже очистим,
+                    // чтобы их вывод был на чистом экране перед паузой.
+                    else if (!_controlUnit.IsOperating)
                     {
                         Console.Clear();
                     }
 
                     ProcessInput(input);
+
+                    // Устанавливаем флаг, если команда требует паузы для просмотра ее вывода
+                    if (wasHelpCommand || (!_controlUnit.IsOperating && !string.IsNullOrWhiteSpace(input) && input != "exit"))
+                    {
+                        commandProcessedRequiresPause = true;
+                    }
                 }
-                else if (!_controlUnit.IsOperating) // Пустой ввод, и автопилот не работает
+                else if (!_controlUnit.IsOperating)
                 {
-                    // Если был просто Enter и автопилот не работает, короткая пауза,
-                    // чтобы избежать слишком быстрого цикла перерисовки DisplayStatus.
                     System.Threading.Thread.Sleep(100);
-                    continue; // Пропускаем логику симуляции и ожидания ReadKey
+                    continue; // Пропускаем SimulateOneStep и возможную паузу ReadKey
                 }
 
 
-                if (_controlUnit.IsOperating && _keepRunning) // Если автопилот работает (или только что был запущен)
+                if (_controlUnit.IsOperating && _keepRunning)
                 {
                     _controlUnit.SimulateOneStep();
-                    // DisplayStatus() будет в начале следующей итерации, обеспечивая обновление
-                    System.Threading.Thread.Sleep(1000); // Задержка для наглядности симуляции
+                    System.Threading.Thread.Sleep(1000);
+                    // DisplayStatus() будет в начале следующей итерации
                 }
-                // Пауза нужна, если:
-                // 1. Была команда help (чтобы ее можно было прочитать).
-                // 2. Или автопилот НЕ работает (был остановлен или не запускался) И была введена какая-то команда (не пустая).
-                // 3. И это не команда exit (после exit выходим из цикла).
-                else if (_keepRunning && !string.IsNullOrWhiteSpace(input) && (commandWasHelp || !_controlUnit.IsOperating))
+
+                // Если команда требовала паузы, делаем ее здесь, ПОСЛЕ возможного SimulateOneStep (если CU не работал)
+                if (commandProcessedRequiresPause && _keepRunning)
                 {
                     Console.WriteLine("\nНажмите любую клавишу для продолжения...");
                     Console.ReadKey(true);
@@ -92,11 +98,7 @@ namespace Traktor.Core
         /// </summary>
         private void DisplayStatus()
         {
-            // Не очищаем здесь, если автопилот работает, т.к. очистка будет перед вводом команды
-            // или если это команда help. Но если автопилот не работает, то очистка перед DisplayStatus
-            // в цикле Run обеспечит чистоту вывода.
-            if (!_controlUnit.IsOperating) Console.Clear();
-            else Console.SetCursorPosition(0, Console.CursorTop > 15 ? Console.CursorTop - 15 : 0); // Пытаемся "перемотать" вверх, если много вывода от работающего CU
+            Console.Clear();
 
             Console.WriteLine("--- Статус системы автопилота трактора ---");
             Console.WriteLine($"Состояние автопилота: {(_controlUnit.IsOperating ? "РАБОТАЕТ" : "ОСТАНОВЛЕН")}");
@@ -315,6 +317,7 @@ namespace Traktor.Core
         /// </summary>
         private void DisplayHelp()
         {
+            // Console.Clear() теперь управляется из цикла Run, когда commandWasHelp == true
             Console.WriteLine("\nДоступные команды:");
             Console.WriteLine("  start <широта> <долгота> [тип_оборуд] - Запустить автопилот к цели. Оборудование: plough, seeder, sprayer (опционально).");
             Console.WriteLine("                                      Пример: start 55.123 37.456 plough");
