@@ -1,11 +1,6 @@
-// Файл: Core/UserInterface.cs
-using System;
-using System.Collections.Generic;
 using System.Drawing; // Для Bitmap
-using System.Linq;    // Для Any()
 using Traktor.DataModels;
 using Traktor.Implements;
-using Traktor.Core; // Для Logger и ControlUnit (если он будет здесь)
 
 namespace Traktor.Core
 {
@@ -37,34 +32,72 @@ namespace Traktor.Core
         public void Run()
         {
             Logger.Instance.Info(SourceFilePath, "Запуск основного цикла UserInterface.");
-            DisplayHelp();
+            DisplayHelp(); // Показываем справку один раз в начале
+            Console.WriteLine("\nНажмите любую клавишу для первого отображения статуса...");
+            Console.ReadKey(true); // true, чтобы не отображать нажатую клавишу
 
             while (_keepRunning)
             {
-                DisplayStatus(); // Отображаем текущий статус
-                Console.Write("Введите команду: ");
-                string input = Console.ReadLine()?.Trim().ToLower();
-                ProcessInput(input);
+                DisplayStatus(); // Всегда отображаем актуальный статус в начале итерации
 
-                if (_controlUnit.IsOperating && _keepRunning) // Если автопилот работает, делаем шаг симуляции
+                Console.Write("Введите команду (help для справки): ");
+                string input = Console.ReadLine()?.Trim().ToLower();
+
+                bool commandWasHelp = (input == "help");
+                bool commandWasExit = (input == "exit");
+
+                if (!string.IsNullOrWhiteSpace(input))
+                {
+                    // Очищаем экран перед выводом результата команды, если это команда, которая сама что-то выводит (help)
+                    // или если автопилот не работает (чтобы результат команды был на чистом экране).
+                    // Если автопилот работает, то DisplayStatus и так обновляет экран.
+                    if (commandWasHelp || !_controlUnit.IsOperating)
+                    {
+                        Console.Clear();
+                    }
+
+                    ProcessInput(input);
+                }
+                else if (!_controlUnit.IsOperating) // Пустой ввод, и автопилот не работает
+                {
+                    // Если был просто Enter и автопилот не работает, короткая пауза,
+                    // чтобы избежать слишком быстрого цикла перерисовки DisplayStatus.
+                    System.Threading.Thread.Sleep(100);
+                    continue; // Пропускаем логику симуляции и ожидания ReadKey
+                }
+
+
+                if (_controlUnit.IsOperating && _keepRunning) // Если автопилот работает (или только что был запущен)
                 {
                     _controlUnit.SimulateOneStep();
-                    System.Threading.Thread.Sleep(1000); // Небольшая задержка для наглядности симуляции
+                    // DisplayStatus() будет в начале следующей итерации, обеспечивая обновление
+                    System.Threading.Thread.Sleep(1000); // Задержка для наглядности симуляции
                 }
-                else if (!_controlUnit.IsOperating && _keepRunning)
+                // Пауза нужна, если:
+                // 1. Была команда help (чтобы ее можно было прочитать).
+                // 2. Или автопилот НЕ работает (был остановлен или не запускался) И была введена какая-то команда (не пустая).
+                // 3. И это не команда exit (после exit выходим из цикла).
+                else if (_keepRunning && !string.IsNullOrWhiteSpace(input) && (commandWasHelp || !_controlUnit.IsOperating))
                 {
-                    System.Threading.Thread.Sleep(200); // Меньшая задержка в режиме ожидания команд
+                    Console.WriteLine("\nНажмите любую клавишу для продолжения...");
+                    Console.ReadKey(true);
                 }
             }
             Logger.Instance.Info(SourceFilePath, "UserInterface завершает работу.");
         }
+
 
         /// <summary>
         /// Отображает текущее состояние системы.
         /// </summary>
         private void DisplayStatus()
         {
-            Console.Clear(); // Очищаем консоль для обновления статуса
+            // Не очищаем здесь, если автопилот работает, т.к. очистка будет перед вводом команды
+            // или если это команда help. Но если автопилот не работает, то очистка перед DisplayStatus
+            // в цикле Run обеспечит чистоту вывода.
+            if (!_controlUnit.IsOperating) Console.Clear();
+            else Console.SetCursorPosition(0, Console.CursorTop > 15 ? Console.CursorTop - 15 : 0); // Пытаемся "перемотать" вверх, если много вывода от работающего CU
+
             Console.WriteLine("--- Статус системы автопилота трактора ---");
             Console.WriteLine($"Состояние автопилота: {(_controlUnit.IsOperating ? "РАБОТАЕТ" : "ОСТАНОВЛЕН")}");
 
@@ -86,21 +119,27 @@ namespace Traktor.Core
             }
 
             Console.WriteLine("\n--- Данные сенсоров ---");
-            Console.WriteLine($"Датчик расстояния (передний): {_controlUnit.GetCurrentDistanceValue():F2} м");
-            Console.WriteLine($"Датчик почвы: {_controlUnit.GetCurrentSoilData()}");
-
-            // Отображение кадра с камеры может быть сложным в консоли.
-            // Пока просто выведем информацию о том, что кадр получен.
-            using (Bitmap frame = _controlUnit.GetCurrentCameraFrame()) // Важно утилизировать Bitmap
+            try
             {
-                if (frame != null)
+                Console.WriteLine($"Датчик расстояния (передний): {_controlUnit.GetCurrentDistanceValue():F2} м");
+                Console.WriteLine($"Датчик почвы: {_controlUnit.GetCurrentSoilData()}");
+
+                using (Bitmap frame = _controlUnit.GetCurrentCameraFrame())
                 {
-                    Console.WriteLine($"Камера: получен кадр {frame.Width}x{frame.Height} (в консоли не отображается)");
+                    if (frame != null)
+                    {
+                        Console.WriteLine($"Камера: получен кадр {frame.Width}x{frame.Height} (в консоли не отображается)");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Камера: не удалось получить кадр.");
+                    }
                 }
-                else
-                {
-                    Console.WriteLine("Камера: не удалось получить кадр.");
-                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.Error(SourceFilePath, $"Ошибка при получении данных сенсоров для отображения: {ex.Message}", ex);
+                Console.WriteLine("Ошибка при получении данных с одного из сенсоров.");
             }
 
 
@@ -134,23 +173,25 @@ namespace Traktor.Core
             {
                 switch (command)
                 {
-                    case "start": // Пример: start <lat> <lon> [plough|seeder|sprayer]
+                    case "start":
                         HandleStartCommand(parts);
                         break;
                     case "stop":
                         _controlUnit.StopOperation();
                         Logger.Instance.Info(SourceFilePath, "Команда 'stop' выполнена.");
+                        Console.WriteLine("Автопилот остановлен.");
                         break;
-                    case "status": // Принудительное обновление статуса (хотя он и так обновляется)
-                        // DisplayStatus() вызывается в цикле, так что отдельная команда не сильно нужна
-                        Logger.Instance.Info(SourceFilePath, "Команда 'status' (обновление не требуется, происходит автоматически).");
+                    case "status":
+                        Logger.Instance.Info(SourceFilePath, "Команда 'status' (обновление произойдет на следующей итерации цикла).");
+                        Console.WriteLine("Статус будет обновлен на следующей итерации...");
                         break;
-                    case "implement": // Пример: implement plough depth 0.2 | implement seeder rate 50 | implement sprayer intensity 75
+                    case "implement":
                         HandleImplementCommand(parts);
                         break;
                     case "exit":
                         _keepRunning = false;
                         Logger.Instance.Info(SourceFilePath, "Команда 'exit'. Завершение работы интерфейса.");
+                        Console.WriteLine("Завершение работы...");
                         break;
                     case "help":
                         DisplayHelp();
@@ -196,18 +237,15 @@ namespace Traktor.Core
                     return;
                 }
             }
-            // Для примера, выставим начальную позицию трактора (можно сделать конфигурируемым)
-            _controlUnit.GetCurrentPosition(); // Чтобы "прогреть" навигацию, если она ленивая.
-            _controlUnit.StartOperation(target, null, implement); // Boundaries пока null
+
+            Console.WriteLine($"Запуск автопилота к цели {target} с оборудованием {implement}...");
+            _controlUnit.StartOperation(target, null, implement);
+            if (_controlUnit.IsOperating) Console.WriteLine("Автопилот запущен.");
+            else Console.WriteLine("Не удалось запустить автопилот (см. логи).");
         }
 
         private void HandleImplementCommand(string[] parts)
         {
-            // implement plough depth 0.2
-            // implement seeder rate 50
-            // implement sprayer intensity 75
-            // implement attach plough
-            // implement activate / deactivate
             if (parts.Length < 2)
             {
                 Console.WriteLine("Использование: implement <тип> <параметр> <значение> | implement attach <тип> | implement <activate|deactivate>");
@@ -215,24 +253,29 @@ namespace Traktor.Core
             }
 
             ImplementControlSystem implementCtrl = _controlUnit.ImplementControl;
+            string actionOrType = parts[1].ToLower();
 
-            switch (parts[1].ToLower())
+            switch (actionOrType)
             {
                 case "attach":
                     if (parts.Length < 3 || !Enum.TryParse<ImplementType>(parts[2], true, out ImplementType typeToAttach))
                     { Console.WriteLine("Использование: implement attach <plough|seeder|sprayer>"); return; }
                     implementCtrl.AttachImplement(typeToAttach);
+                    Console.WriteLine($"Оборудование '{typeToAttach}' подключено.");
                     break;
                 case "activate":
                     implementCtrl.ActivateOperation();
+                    Console.WriteLine($"Попытка активации операции с оборудованием '{implementCtrl.GetAttachedImplementType()}'.");
                     break;
                 case "deactivate":
                     implementCtrl.DeactivateOperation();
+                    Console.WriteLine($"Попытка деактивации операции с оборудованием '{implementCtrl.GetAttachedImplementType()}'.");
                     break;
-                default: // Предполагаем, что это установка параметра
-                    if (parts.Length < 4) { Console.WriteLine("Использование: implement <тип_оборудования> <параметр> <значение>"); return; }
-                    if (!Enum.TryParse<ImplementType>(parts[1], true, out ImplementType targetImplement))
-                    { Console.WriteLine($"Неизвестный тип оборудования: {parts[1]}"); return; }
+                default:
+                    if (parts.Length < 4) { Console.WriteLine("Использование для установки параметра: implement <тип_оборудования> <параметр> <значение>"); return; }
+
+                    if (!Enum.TryParse<ImplementType>(actionOrType, true, out ImplementType targetImplement))
+                    { Console.WriteLine($"Неизвестный тип оборудования: {actionOrType}"); return; }
 
                     string paramName = parts[2].ToLower();
                     if (!double.TryParse(parts[3].Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double paramValue))
@@ -243,29 +286,29 @@ namespace Traktor.Core
                         Console.WriteLine($"Сначала подключите оборудование '{targetImplement}' командой 'implement attach {targetImplement.ToString().ToLower()}'");
                         return;
                     }
-
+                    bool paramSetSuccess = false;
                     switch (targetImplement)
                     {
                         case ImplementType.Plough:
-                            if (paramName == "depth") implementCtrl.SetPloughDepth(paramValue);
+                            if (paramName == "depth") { implementCtrl.SetPloughDepth(paramValue); paramSetSuccess = true; }
                             else Console.WriteLine($"Неизвестный параметр '{paramName}' для плуга.");
                             break;
                         case ImplementType.Seeder:
-                            if (paramName == "rate") implementCtrl.SetSeederRate(paramValue);
+                            if (paramName == "rate") { implementCtrl.SetSeederRate(paramValue); paramSetSuccess = true; }
                             else Console.WriteLine($"Неизвестный параметр '{paramName}' для сеялки.");
                             break;
                         case ImplementType.Sprayer:
-                            if (paramName == "intensity") implementCtrl.SetSprayerIntensity(paramValue);
+                            if (paramName == "intensity") { implementCtrl.SetSprayerIntensity(paramValue); paramSetSuccess = true; }
                             else Console.WriteLine($"Неизвестный параметр '{paramName}' для опрыскивателя.");
                             break;
                         default:
-                            Console.WriteLine($"Установка параметров для '{targetImplement}' не поддерживается или оборудование не подключено.");
+                            Console.WriteLine($"Установка параметров для '{targetImplement}' не поддерживается.");
                             break;
                     }
+                    if (paramSetSuccess) Console.WriteLine($"Параметр '{paramName}' для '{targetImplement}' установлен на '{paramValue}'.");
                     break;
             }
         }
-
 
         /// <summary>
         /// Отображает справочную информацию по доступным командам.
@@ -278,9 +321,9 @@ namespace Traktor.Core
             Console.WriteLine("  stop                               - Остановить автопилот.");
             Console.WriteLine("  implement attach <тип>             - Подключить оборудование (plough, seeder, sprayer).");
             Console.WriteLine("                                      Пример: implement attach plough");
-            Console.WriteLine("  implement <тип> depth <значение>   - Установить глубину плуга (если плуг подключен). Пример: implement plough depth 0.2");
-            Console.WriteLine("  implement <тип> rate <значение>    - Установить норму высева сеялки. Пример: implement seeder rate 50");
-            Console.WriteLine("  implement <тип> intensity <знач>   - Установить интенсивность опрыскивателя. Пример: implement sprayer intensity 75");
+            Console.WriteLine("  implement <тип> <параметр> <знач>  - Установить параметр для подключенного оборудования типа <тип>.");
+            Console.WriteLine("                                      Параметры: plough depth <знач>, seeder rate <знач>, sprayer intensity <знач>");
+            Console.WriteLine("                                      Пример: implement plough depth 0.2");
             Console.WriteLine("  implement activate                 - Активировать операцию подключенного оборудования.");
             Console.WriteLine("  implement deactivate               - Деактивировать операцию оборудования.");
             Console.WriteLine("  status                             - (Обновляется автоматически) Показать текущий статус.");
