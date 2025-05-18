@@ -1,5 +1,6 @@
 using Traktor.Interfaces;
 using Traktor.DataModels;
+using Traktor.Core;   // Добавлено для Logger
 
 namespace Traktor.Sensors
 {
@@ -9,13 +10,15 @@ namespace Traktor.Sensors
     public class SoilSensor : ISensors<SoilSensorData>
     {
         private static readonly Random _random = new Random();
+        private const string SourceFilePath = "Sensors/SoilSensor.cs"; // Определяем константу для пути файла
 
         /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="SoilSensor"/>.
         /// </summary>
         public SoilSensor()
         {
-            Console.WriteLine($"[Sensors/SoilSensor.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Датчик почвы инициализирован.");
+            // Используем Logger.Instance.Info для логирования инициализации
+            Logger.Instance.Info(SourceFilePath, "Датчик почвы инициализирован.");
         }
 
         /// <summary>
@@ -30,7 +33,8 @@ namespace Traktor.Sensors
             double temperature = 5.0 + _random.NextDouble() * (25.0 - 5.0);  // Температура от 5°C до 25°C
 
             var data = new SoilSensorData(moisture, temperature);
-            Console.WriteLine($"[Sensors/SoilSensor.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Получены данные от датчика почвы: {data}");
+            // Используем Logger.Instance.Debug для логирования полученных данных
+            Logger.Instance.Debug(SourceFilePath, $"Получены данные от датчика почвы: {data}");
             return data;
         }
     }

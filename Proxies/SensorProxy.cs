@@ -1,4 +1,5 @@
 using Traktor.Interfaces; // Для ISensors<T>
+using Traktor.Core;       // Добавлено для Logger
 
 namespace Traktor.Proxies
 {
@@ -18,7 +19,7 @@ namespace Traktor.Proxies
         private bool _isSensorInitialized = false;
         private static readonly object _lock = new object(); // Для потокобезопасной инициализации
 
-        private const string LogPrefix = "[Proxies/SensorProxy.cs]";
+        private const string SourceFilePath = "Proxies/SensorProxy.cs"; // Определяем константу
 
         /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="SensorProxy{T}"/>.
@@ -33,7 +34,7 @@ namespace Traktor.Proxies
             _cacheDuration = cacheDuration;
             _lastCacheUpdateTime = DateTime.MinValue; // Гарантирует, что первое чтение обновит кэш
 
-            Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: SensorProxy<{typeof(T).Name}> создан. Кэширование: {_cacheDuration.TotalSeconds}с. Реальный сенсор еще не инициализирован.");
+            Logger.Instance.Info(SourceFilePath, $"SensorProxy<{typeof(T).Name}> создан. Кэширование: {_cacheDuration.TotalSeconds}с. Реальный сенсор еще не инициализирован.");
         }
 
         /// <summary>
@@ -48,16 +49,16 @@ namespace Traktor.Proxies
                 {
                     if (!_isSensorInitialized) // Двойная проверка на случай, если другой поток уже инициализировал
                     {
-                        Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: SensorProxy<{typeof(T).Name}>: Инициализация реального сенсора через фабрику...");
+                        Logger.Instance.Debug(SourceFilePath, $"SensorProxy<{typeof(T).Name}>: Инициализация реального сенсора через фабрику...");
                         _realSensor = _sensorFactory();
                         if (_realSensor == null)
                         {
-                            Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: SensorProxy<{typeof(T).Name}>: ОШИБКА! Фабрика сенсоров вернула null.");
+                            Logger.Instance.Fatal(SourceFilePath, $"SensorProxy<{typeof(T).Name}>: ОШИБКА! Фабрика сенсоров вернула null.");
                             // Можно выбросить исключение, если это критично
                             throw new InvalidOperationException("Фабрика сенсоров не смогла создать экземпляр сенсора.");
                         }
                         _isSensorInitialized = true;
-                        Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: SensorProxy<{typeof(T).Name}>: Реальный сенсор ({_realSensor.GetType().Name}) успешно инициализирован.");
+                        Logger.Instance.Info(SourceFilePath, $"SensorProxy<{typeof(T).Name}>: Реальный сенсор ({_realSensor.GetType().Name}) успешно инициализирован.");
                     }
                 }
             }
@@ -77,12 +78,12 @@ namespace Traktor.Proxies
 
             if (useCache)
             {
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: SensorProxy<{typeof(T).Name}>: GetData() - Возвращаем данные из кэша. Кэш валиден до: {(_lastCacheUpdateTime + _cacheDuration):yyyy-MM-dd HH:mm:ss.fff}");
+                Logger.Instance.Debug(SourceFilePath, $"SensorProxy<{typeof(T).Name}>: GetData() - Возвращаем данные из кэша. Кэш валиден до: {(_lastCacheUpdateTime + _cacheDuration):yyyy-MM-dd HH:mm:ss.fff}");
                 return _cachedData;
             }
 
             // Если кэш не используется или истек
-            Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: SensorProxy<{typeof(T).Name}>: GetData() - Кэш не используется или истек. Запрос данных от реального сенсора ({_realSensor.GetType().Name})...");
+            Logger.Instance.Debug(SourceFilePath, $"SensorProxy<{typeof(T).Name}>: GetData() - Кэш не используется или истек. Запрос данных от реального сенсора ({_realSensor.GetType().Name})...");
 
             T newData = default(T); // Значение по умолчанию на случай ошибки
             try
@@ -90,11 +91,11 @@ namespace Traktor.Proxies
                 newData = _realSensor.GetData();
                 _cachedData = newData;
                 _lastCacheUpdateTime = DateTime.Now;
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: SensorProxy<{typeof(T).Name}>: GetData() - Данные получены от реального сенсора и кэшированы. Новое время обновления кэша: {_lastCacheUpdateTime:yyyy-MM-dd HH:mm:ss.fff}");
+                Logger.Instance.Debug(SourceFilePath, $"SensorProxy<{typeof(T).Name}>: GetData() - Данные получены от реального сенсора и кэшированы. Новое время обновления кэша: {_lastCacheUpdateTime:yyyy-MM-dd HH:mm:ss.fff}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: SensorProxy<{typeof(T).Name}>: GetData() - ОШИБКА при получении данных от реального сенсора: {ex.Message}. Возвращаем default(T).");
+                Logger.Instance.Error(SourceFilePath, $"SensorProxy<{typeof(T).Name}>: GetData() - ОШИБКА при получении данных от реального сенсора: {ex.Message}. Возвращаем default(T).", ex);
                 // Можно решить, что делать с кэшем в случае ошибки - сбрасывать или оставлять старый.
                 // Пока оставляем старый (если он был), или default(T) если его не было.
                 // Если хотим вернуть последнее удачное значение из кэша, даже если он "истек", но была ошибка:

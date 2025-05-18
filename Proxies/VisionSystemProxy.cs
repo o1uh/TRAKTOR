@@ -1,5 +1,6 @@
 using Traktor.Interfaces; // Для IComputerVisionSystem
 using Traktor.DataModels; // Для ObstacleData, FieldFeatureData
+using Traktor.Core;       // Добавлено для Logger
 
 namespace Traktor.Proxies
 {
@@ -34,7 +35,7 @@ namespace Traktor.Proxies
         private static readonly object _primaryLock = new object();
         private static readonly object _backupLock = new object();
 
-        private const string LogPrefix = "[Proxies/VisionSystemProxy.cs]";
+        private const string SourceFilePath = "Proxies/VisionSystemProxy.cs";    // Определяем константу
         private const double CACHE_POSITION_TOLERANCE = 0.00001; // Допуск для сравнения координат при кэшировании
 
         /// <summary>
@@ -52,7 +53,7 @@ namespace Traktor.Proxies
             _lastObstaclesCacheTime = DateTime.MinValue;
             _lastFeaturesCacheTime = DateTime.MinValue;
 
-            Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: VisionSystemProxy создан. Кэширование: {_cacheDuration.TotalSeconds}с. Резервная система: {(_backupSystemFactory != null ? "предусмотрена" : "нет")}.");
+            Logger.Instance.Info(SourceFilePath, $"VisionSystemProxy создан. Кэширование: {_cacheDuration.TotalSeconds}с. Резервная система: {(_backupSystemFactory != null ? "предусмотрена" : "нет")}.");
         }
 
         /// <summary>
@@ -66,11 +67,15 @@ namespace Traktor.Proxies
                 {
                     if (!_isPrimarySystemInitialized)
                     {
-                        Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Инициализация основной системы зрения...");
+                        Logger.Instance.Debug(SourceFilePath, "Инициализация основной системы зрения...");
                         _primarySystem = _primarySystemFactory();
-                        if (_primarySystem == null) throw new InvalidOperationException("Фабрика основной системы зрения вернула null.");
+                        if (_primarySystem == null)
+                        {
+                            Logger.Instance.Fatal(SourceFilePath, "Фабрика основной системы зрения вернула null."); // Уровень Fatal для критических ошибок конфигурации
+                            throw new InvalidOperationException("Фабрика основной системы зрения вернула null.");
+                        }
                         _isPrimarySystemInitialized = true;
-                        Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Основная система зрения ({_primarySystem.GetType().Name}) успешно инициализирована.");
+                        Logger.Instance.Info(SourceFilePath, $"Основная система зрения ({_primarySystem.GetType().Name}) успешно инициализирована.");
                     }
                 }
             }
@@ -87,18 +92,18 @@ namespace Traktor.Proxies
                 {
                     if (!_isBackupSystemInitialized) // Двойная проверка
                     {
-                        Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Инициализация резервной системы зрения...");
+                        Logger.Instance.Debug(SourceFilePath, "Инициализация резервной системы зрения...");
                         _backupSystem = _backupSystemFactory();
                         if (_backupSystem == null)
                         {
                             // Не фатально, если резервная не создалась, просто логируем
-                            Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: ОШИБКА: Фабрика резервной системы зрения вернула null. Резервная система не будет доступна.");
+                            Logger.Instance.Error(SourceFilePath, "ОШИБКА: Фабрика резервной системы зрения вернула null. Резервная система не будет доступна.");
                             _isBackupSystemInitialized = false; // Явно указываем, что инициализация не удалась
                         }
                         else
                         {
                             _isBackupSystemInitialized = true;
-                            Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Резервная система зрения ({_backupSystem.GetType().Name}) успешно инициализирована.");
+                            Logger.Instance.Info(SourceFilePath, $"Резервная система зрения ({_backupSystem.GetType().Name}) успешно инициализирована.");
                         }
                     }
                 }
@@ -110,20 +115,21 @@ namespace Traktor.Proxies
         /// </summary>
         /// <param name="activateBackupIfAvailable">Если true, попытается активировать резервную систему, если основная не отвечает.</param>
         /// <returns>Экземпляр активной системы зрения или null, если ни одна не доступна.</returns>
-        private IComputerVisionSystem GetActiveSystem(bool activateBackupIfAvailable = false)
+        private IComputerVisionSystem GetActiveSystem(bool activateBackupIfAvailable = false) // activateBackupIfAvailable пока не используется для авто-переключения
         {
             if (_useBackupSystem && _backupSystemFactory != null)
             {
                 EnsureBackupSystemInitialized();
                 if (_isBackupSystemInitialized) return _backupSystem;
                 // Если бэкап должен был использоваться, но не инициализировался, пытаемся основную
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Резервная система была выбрана, но не инициализирована. Попытка использовать основную.");
+                Logger.Instance.Warning(SourceFilePath, "Резервная система была выбрана, но не инициализирована. Попытка использовать основную.");
                 _useBackupSystem = false; // Сбрасываем флаг, раз бэкап не удался
             }
 
             EnsurePrimarySystemInitialized();
             // Здесь можно добавить логику проверки "здоровья" основной системы,
-            // и если она не отвечает, и activateBackupIfAvailable=true, то переключиться на резервную:
+            // и если она не отвечает, и activateBackupIfAvailable=true, то переключиться на резервную.
+            // Для макета, пока просто возвращаем основную.
             return _primarySystem;
         }
 
@@ -134,18 +140,18 @@ namespace Traktor.Proxies
         {
             if (_backupSystemFactory == null)
             {
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: SwitchToBackupSystem: Резервная система не предусмотрена.");
+                Logger.Instance.Info(SourceFilePath, "SwitchToBackupSystem: Резервная система не предусмотрена.");
                 return;
             }
             EnsureBackupSystemInitialized(); // Убедимся, что она создана
             if (_isBackupSystemInitialized)
             {
                 _useBackupSystem = true;
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: SwitchToBackupSystem: Прокси переключен на использование резервной системы зрения ({_backupSystem.GetType().Name}).");
+                Logger.Instance.Info(SourceFilePath, $"SwitchToBackupSystem: Прокси переключен на использование резервной системы зрения ({_backupSystem.GetType().Name}).");
             }
             else
             {
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: SwitchToBackupSystem: Не удалось переключиться на резервную систему (не инициализирована).");
+                Logger.Instance.Warning(SourceFilePath, "SwitchToBackupSystem: Не удалось переключиться на резервную систему (не инициализирована).");
             }
         }
 
@@ -157,18 +163,20 @@ namespace Traktor.Proxies
             if (_useBackupSystem)
             {
                 _useBackupSystem = false;
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: SwitchToPrimarySystem: Прокси переключен на использование основной системы зрения.");
+                Logger.Instance.Info(SourceFilePath, "SwitchToPrimarySystem: Прокси переключен на использование основной системы зрения.");
             }
+            // Если и так на основной, можно ничего не делать или добавить лог Debug уровня
+            else { Logger.Instance.Debug(SourceFilePath, "SwitchToPrimarySystem: Уже используется основная система."); }
         }
 
 
         /// <inheritdoc/>
         public List<ObstacleData> DetectObstacles(Coordinates currentTractorPosition)
         {
-            IComputerVisionSystem activeSystem = GetActiveSystem(true); // true - разрешить переключение на бэкап при сбое (пока не реализовано)
+            IComputerVisionSystem activeSystem = GetActiveSystem(true);
             if (activeSystem == null)
             {
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles: Активная система зрения недоступна.");
+                Logger.Instance.Error(SourceFilePath, "DetectObstacles: Активная система зрения недоступна.");
                 return new List<ObstacleData>();
             }
             string systemTypeName = activeSystem.GetType().Name;
@@ -178,33 +186,44 @@ namespace Traktor.Proxies
 
             if (_cacheDuration > TimeSpan.Zero && !positionChangedSignificantly && _cachedObstacles != null && (DateTime.Now - _lastObstaclesCacheTime) < _cacheDuration)
             {
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles ({systemTypeName}): Возвращаем данные из кэша для позиции {currentTractorPosition}.");
+                Logger.Instance.Debug(SourceFilePath, $"DetectObstacles ({systemTypeName}): Возвращаем данные из кэша для позиции {currentTractorPosition}.");
                 return new List<ObstacleData>(_cachedObstacles); // Возвращаем копию кэша
             }
 
-            Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles ({systemTypeName}): Кэш не используется или истек/позиция изменилась. Запрос к системе ({systemTypeName}) для позиции {currentTractorPosition}.");
+            Logger.Instance.Debug(SourceFilePath, $"DetectObstacles ({systemTypeName}): Кэш не используется или истек/позиция изменилась. Запрос к системе ({systemTypeName}) для позиции {currentTractorPosition}.");
             try
             {
                 List<ObstacleData> newData = activeSystem.DetectObstacles(currentTractorPosition);
                 _cachedObstacles = newData != null ? new List<ObstacleData>(newData) : new List<ObstacleData>(); // Кэшируем копию или пустой список
                 _lastObstaclesCacheTime = DateTime.Now;
                 _lastObstaclesQueryPosition = currentTractorPosition;
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles ({systemTypeName}): Данные получены и кэшированы ({_cachedObstacles.Count} препятствий).");
+                Logger.Instance.Debug(SourceFilePath, $"DetectObstacles ({systemTypeName}): Данные получены и кэшированы ({_cachedObstacles.Count} препятствий).");
                 return newData; // Возвращаем оригинал, полученный от системы
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles ({systemTypeName}): ОШИБКА при вызове DetectObstacles у реальной системы: {ex.Message}");
+                Logger.Instance.Error(SourceFilePath, $"DetectObstacles ({systemTypeName}): ОШИБКА при вызове DetectObstacles у реальной системы: {ex.Message}", ex);
                 // Здесь можно попытаться переключиться на резервную систему, если это не текущая резервная
                 if (activeSystem == _primarySystem && _backupSystemFactory != null)
                 {
-                    Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles: Попытка использовать резервную систему после сбоя основной...");
-                    SwitchToBackupSystem();
-                    IComputerVisionSystem backup = GetActiveSystem(); // Получаем бэкап (он теперь должен быть активным)
-                    if (backup != null && backup != _primarySystem) // Убеждаемся что это действительно бэкап
+                    Logger.Instance.Warning(SourceFilePath, "DetectObstacles: Попытка использовать резервную систему после сбоя основной...");
+                    SwitchToBackupSystem(); // Переключаемся
+                    IComputerVisionSystem backup = GetActiveSystem(); // Получаем активную систему (теперь это должен быть бэкап, если он есть и работает)
+                    if (backup != null && backup == _backupSystem) // Убеждаемся, что это действительно бэкап и он активен
                     {
-                        try { return backup.DetectObstacles(currentTractorPosition); } // Без кэширования для бэкапа при сбое
-                        catch (Exception backupEx) { Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles: ОШИБКА и у резервной системы: {backupEx.Message}"); }
+                        try
+                        {
+                            Logger.Instance.Info(SourceFilePath, "DetectObstacles: Повторный вызов DetectObstacles у резервной системы.");
+                            return backup.DetectObstacles(currentTractorPosition); // Без кэширования для бэкапа при сбое основной
+                        }
+                        catch (Exception backupEx)
+                        {
+                            Logger.Instance.Error(SourceFilePath, $"DetectObstacles: ОШИБКА и у резервной системы ({backup.GetType().Name}): {backupEx.Message}", backupEx);
+                        }
+                    }
+                    else if (backup == _primarySystem) // Если после SwitchToBackupSystem активной осталась основная (значит бэкап не сработал)
+                    {
+                        Logger.Instance.Error(SourceFilePath, "DetectObstacles: Резервная система не смогла активироваться после сбоя основной.");
                     }
                 }
                 return new List<ObstacleData>(); // Возвращаем пустой список в случае ошибки
@@ -217,7 +236,7 @@ namespace Traktor.Proxies
             IComputerVisionSystem activeSystem = GetActiveSystem(true);
             if (activeSystem == null)
             {
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures: Активная система зрения недоступна.");
+                Logger.Instance.Error(SourceFilePath, "AnalyzeFieldFeatures: Активная система зрения недоступна.");
                 return new List<FieldFeatureData>();
             }
             string systemTypeName = activeSystem.GetType().Name;
@@ -227,32 +246,43 @@ namespace Traktor.Proxies
 
             if (_cacheDuration > TimeSpan.Zero && !positionChangedSignificantly && _cachedFeatures != null && (DateTime.Now - _lastFeaturesCacheTime) < _cacheDuration)
             {
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures ({systemTypeName}): Возвращаем данные из кэша для позиции {currentTractorPosition}.");
+                Logger.Instance.Debug(SourceFilePath, $"AnalyzeFieldFeatures ({systemTypeName}): Возвращаем данные из кэша для позиции {currentTractorPosition}.");
                 return new List<FieldFeatureData>(_cachedFeatures); // Копия кэша
             }
 
-            Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures ({systemTypeName}): Кэш не используется или истек/позиция изменилась. Запрос к системе ({systemTypeName}) для позиции {currentTractorPosition}.");
+            Logger.Instance.Debug(SourceFilePath, $"AnalyzeFieldFeatures ({systemTypeName}): Кэш не используется или истек/позиция изменилась. Запрос к системе ({systemTypeName}) для позиции {currentTractorPosition}.");
             try
             {
                 List<FieldFeatureData> newData = activeSystem.AnalyzeFieldFeatures(currentTractorPosition);
                 _cachedFeatures = newData != null ? new List<FieldFeatureData>(newData) : new List<FieldFeatureData>();
                 _lastFeaturesCacheTime = DateTime.Now;
                 _lastFeaturesQueryPosition = currentTractorPosition;
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures ({systemTypeName}): Данные получены и кэшированы ({_cachedFeatures.Count} особенностей).");
+                Logger.Instance.Debug(SourceFilePath, $"AnalyzeFieldFeatures ({systemTypeName}): Данные получены и кэшированы ({_cachedFeatures.Count} особенностей).");
                 return newData;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures ({systemTypeName}): ОШИБКА при вызове AnalyzeFieldFeatures у реальной системы: {ex.Message}");
+                Logger.Instance.Error(SourceFilePath, $"AnalyzeFieldFeatures ({systemTypeName}): ОШИБКА при вызове AnalyzeFieldFeatures у реальной системы: {ex.Message}", ex);
                 if (activeSystem == _primarySystem && _backupSystemFactory != null)
                 {
-                    Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures: Попытка использовать резервную систему после сбоя основной...");
+                    Logger.Instance.Warning(SourceFilePath, "AnalyzeFieldFeatures: Попытка использовать резервную систему после сбоя основной...");
                     SwitchToBackupSystem();
                     IComputerVisionSystem backup = GetActiveSystem();
-                    if (backup != null && backup != _primarySystem)
+                    if (backup != null && backup == _backupSystem)
                     {
-                        try { return backup.AnalyzeFieldFeatures(currentTractorPosition); }
-                        catch (Exception backupEx) { Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures: ОШИБКА и у резервной системы: {backupEx.Message}"); }
+                        try
+                        {
+                            Logger.Instance.Info(SourceFilePath, "AnalyzeFieldFeatures: Повторный вызов AnalyzeFieldFeatures у резервной системы.");
+                            return backup.AnalyzeFieldFeatures(currentTractorPosition);
+                        }
+                        catch (Exception backupEx)
+                        {
+                            Logger.Instance.Error(SourceFilePath, $"AnalyzeFieldFeatures: ОШИБКА и у резервной системы ({backup.GetType().Name}): {backupEx.Message}", backupEx);
+                        }
+                    }
+                    else if (backup == _primarySystem)
+                    {
+                        Logger.Instance.Error(SourceFilePath, "AnalyzeFieldFeatures: Резервная система не смогла активироваться после сбоя основной.");
                     }
                 }
                 return new List<FieldFeatureData>();

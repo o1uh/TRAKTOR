@@ -1,4 +1,5 @@
 using Traktor.Interfaces;
+using Traktor.Core;   // Добавлено для Logger
 
 namespace Traktor.Sensors
 {
@@ -8,6 +9,7 @@ namespace Traktor.Sensors
     public class DistanceSensor : ISensors<double>
     {
         private static readonly Random _random = new Random(); // Лучше использовать один экземпляр Random
+        private const string SourceFilePath = "Sensors/DistanceSensor.cs"; // Определяем константу для пути файла
 
         /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="DistanceSensor"/>.
@@ -16,7 +18,8 @@ namespace Traktor.Sensors
         {
             // Конструктор может быть использован для инициализации подключения к реальному датчику
             // или для установки начальных параметров симуляции.
-            Console.WriteLine($"[Sensors/DistanceSensor.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Датчик расстояния инициализирован.");
+            // Используем Logger.Instance.Info для логирования инициализации
+            Logger.Instance.Info(SourceFilePath, "Датчик расстояния инициализирован.");
         }
 
         /// <summary>
@@ -30,7 +33,8 @@ namespace Traktor.Sensors
 
             // Предположим, датчик может "видеть" от 0.1 до 50 метров.
             double distance = 0.1 + _random.NextDouble() * (50.0 - 0.1);
-            Console.WriteLine($"[Sensors/DistanceSensor.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Зафиксировано расстояние: {distance:F2} м");
+            // Используем Logger.Instance.Debug для логирования полученного расстояния, т.к. это может быть частым событием
+            Logger.Instance.Debug(SourceFilePath, $"Зафиксировано расстояние: {distance:F2} м");
             return distance;
         }
     }

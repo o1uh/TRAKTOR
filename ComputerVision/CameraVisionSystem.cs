@@ -1,6 +1,7 @@
 using Traktor.Interfaces;
 using Traktor.DataModels;
 using System.Drawing; // Для Bitmap
+using Traktor.Core;   // Добавлено для Logger
 
 namespace Traktor.ComputerVision
 {
@@ -13,6 +14,7 @@ namespace Traktor.ComputerVision
         private static readonly Random _random = new Random();
         private bool _isSystemActive = true;
         private readonly ISensors<Bitmap> _cameraSensor; // Зависимость от сенсора камеры
+        private const string SourceFilePath = "ComputerVision/CameraVisionSystem.cs"; // Определяем константу
 
         /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="CameraVisionSystem"/>.
@@ -23,7 +25,7 @@ namespace Traktor.ComputerVision
         {
             _cameraSensor = cameraSensor ?? throw new ArgumentNullException(nameof(cameraSensor));
             // _isSystemActive = true; // По умолчанию активна
-            Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Система технического зрения на базе камер инициализирована и связана с сенсором камеры. Активна: {_isSystemActive}");
+            Logger.Instance.Info(SourceFilePath, $"Система технического зрения на базе камер инициализирована и связана с сенсором камеры. Активна: {_isSystemActive}");
         }
 
         /// <inheritdoc/>
@@ -31,26 +33,26 @@ namespace Traktor.ComputerVision
         {
             if (!_isSystemActive)
             {
-                Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles: Система камер не активна. Обнаружение препятствий невозможно.");
+                Logger.Instance.Warning(SourceFilePath, $"DetectObstacles: Система камер не активна. Обнаружение препятствий невозможно.");
                 return new List<ObstacleData>();
             }
 
-            Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles: Запрос данных с камеры для обнаружения препятствий. Текущая позиция трактора: {currentTractorPosition}");
+            Logger.Instance.Debug(SourceFilePath, $"DetectObstacles: Запрос данных с камеры для обнаружения препятствий. Текущая позиция трактора: {currentTractorPosition}");
             Bitmap currentFrame = null;
             try
             {
                 currentFrame = _cameraSensor.GetData();
                 if (currentFrame == null)
                 {
-                    Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles: Не удалось получить кадр с камеры (null).");
+                    Logger.Instance.Warning(SourceFilePath, "DetectObstacles: Не удалось получить кадр с камеры (null).");
                     return new List<ObstacleData>();
                 }
-                Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles: Получен кадр с камеры {currentFrame.Width}x{currentFrame.Height}. Имитация анализа...");
+                Logger.Instance.Debug(SourceFilePath, $"DetectObstacles: Получен кадр с камеры {currentFrame.Width}x{currentFrame.Height}. Имитация анализа...");
                 // Здесь был бы сложный анализ currentFrame...
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles: Ошибка при получении или обработке кадра с камеры: {ex.Message}");
+                Logger.Instance.Error(SourceFilePath, $"DetectObstacles: Ошибка при получении или обработке кадра с камеры: {ex.Message}", ex);
                 return new List<ObstacleData>();
             }
             finally
@@ -76,11 +78,11 @@ namespace Traktor.ComputerVision
                 string description = _random.Next(0, 2) == 0 ? "Небольшой камень (камера)" : "Низко висящая ветка (камера)";
 
                 detectedObstacles.Add(new ObstacleData(obstaclePos, description));
-                Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles: По результатам анализа кадра обнаружено: \"{description}\" в {obstaclePos}");
+                Logger.Instance.Info(SourceFilePath, $"DetectObstacles: По результатам анализа кадра обнаружено: \"{description}\" в {obstaclePos}");
             }
             else
             {
-                Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles: Препятствий по данным анализа кадра не обнаружено.");
+                Logger.Instance.Debug(SourceFilePath, "DetectObstacles: Препятствий по данным анализа кадра не обнаружено.");
             }
             return detectedObstacles;
         }
@@ -90,26 +92,26 @@ namespace Traktor.ComputerVision
         {
             if (!_isSystemActive)
             {
-                Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures: Система камер не активна. Анализ особенностей поля невозможен.");
+                Logger.Instance.Warning(SourceFilePath, $"AnalyzeFieldFeatures: Система камер не активна. Анализ особенностей поля невозможен.");
                 return new List<FieldFeatureData>();
             }
 
-            Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures: Запрос данных с камеры для анализа особенностей поля. Текущая позиция трактора: {currentTractorPosition}.");
+            Logger.Instance.Debug(SourceFilePath, $"AnalyzeFieldFeatures: Запрос данных с камеры для анализа особенностей поля. Текущая позиция трактора: {currentTractorPosition}.");
             Bitmap currentFrame = null;
             try
             {
                 currentFrame = _cameraSensor.GetData();
                 if (currentFrame == null)
                 {
-                    Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures: Не удалось получить кадр с камеры (null).");
+                    Logger.Instance.Warning(SourceFilePath, "AnalyzeFieldFeatures: Не удалось получить кадр с камеры (null).");
                     return new List<FieldFeatureData>();
                 }
-                Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures: Получен кадр с камеры {currentFrame.Width}x{currentFrame.Height}. Имитация анализа...");
+                Logger.Instance.Debug(SourceFilePath, $"AnalyzeFieldFeatures: Получен кадр с камеры {currentFrame.Width}x{currentFrame.Height}. Имитация анализа...");
                 // Анализ currentFrame на сорняки и т.д.
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures: Ошибка при получении или обработке кадра с камеры: {ex.Message}");
+                Logger.Instance.Error(SourceFilePath, $"AnalyzeFieldFeatures: Ошибка при получении или обработке кадра с камеры: {ex.Message}", ex);
                 return new List<FieldFeatureData>();
             }
             finally
@@ -143,12 +145,12 @@ namespace Traktor.ComputerVision
                     else { type = FeatureType.WaterLogging; details = "Небольшая лужа (камера)"; }
 
                     detectedFeatures.Add(new FieldFeatureData(featurePos, type, details));
-                    Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures: По результатам анализа кадра обнаружена особенность: {type} \"{details}\" в {featurePos}");
+                    Logger.Instance.Info(SourceFilePath, $"AnalyzeFieldFeatures: По результатам анализа кадра обнаружена особенность: {type} \"{details}\" в {featurePos}");
                 }
             }
             else
             {
-                Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures: Агрономических особенностей по данным анализа кадра не обнаружено.");
+                Logger.Instance.Debug(SourceFilePath, "AnalyzeFieldFeatures: Агрономических особенностей по данным анализа кадра не обнаружено.");
             }
             return detectedFeatures;
         }
@@ -159,7 +161,7 @@ namespace Traktor.ComputerVision
         public void ActivateInternal()
         {
             _isSystemActive = true;
-            Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Система камер внутренне активирована.");
+            Logger.Instance.Info(SourceFilePath, "Система камер внутренне активирована.");
         }
 
         /// <summary>
@@ -168,7 +170,7 @@ namespace Traktor.ComputerVision
         public void DeactivateInternal()
         {
             _isSystemActive = false;
-            Console.WriteLine($"[ComputerVision/CameraVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Система камер внутренне деактивирована.");
+            Logger.Instance.Info(SourceFilePath, "Система камер внутренне деактивирована.");
         }
     }
 }

@@ -1,5 +1,6 @@
 using Traktor.Interfaces;
 using System.Drawing; // Для Bitmap, Graphics, Color, Font, SolidBrush
+using Traktor.Core;   // Добавлено для Logger
 
 namespace Traktor.Sensors
 {
@@ -12,13 +13,15 @@ namespace Traktor.Sensors
         private readonly int _defaultWidth = 640;
         private readonly int _defaultHeight = 480;
         private static readonly Random _random = new Random(); // Для случайного цвета фона
+        private const string SourceFilePath = "Sensors/CameraSensor.cs"; // Определяем константу для пути файла
 
         /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="CameraSensor"/>.
         /// </summary>
         public CameraSensor()
         {
-            Console.WriteLine($"[Sensors/CameraSensor.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Датчик камеры (симуляция) инициализирован с разрешением {_defaultWidth}x{_defaultHeight}.");
+            // Используем Logger.Instance.Info для логирования инициализации
+            Logger.Instance.Info(SourceFilePath, $"Датчик камеры (симуляция) инициализирован с разрешением {_defaultWidth}x{_defaultHeight}.");
         }
 
         /// <summary>
@@ -37,14 +40,15 @@ namespace Traktor.Sensors
                 g.Clear(Color.FromArgb(_random.Next(256), _random.Next(256), _random.Next(256)));
 
                 // Рисуем текст
-                string text = $"Кадр #{_imageCounter} ({DateTime.Now:HH:mm:ss.fff})";
+                string text = $"Кадр #{_imageCounter} ({DateTime.Now:HH:mm:ss.fff})"; // DateTime здесь уже используется
                 using (Font font = new Font("Arial", 20)) // Шрифт Arial может отсутствовать в некоторых системах, можно заменить на более универсальный
                 using (SolidBrush brush = new SolidBrush(Color.Black))
                 {
                     g.DrawString(text, font, brush, 10, 10);
                 }
             }
-            Console.WriteLine($"[Sensors/CameraSensor.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Сгенерирован Bitmap {bmp.Width}x{bmp.Height}, Кадр #{_imageCounter}");
+            // Используем Logger.Instance.Debug для логирования генерации Bitmap, т.к. это может быть частым событием
+            Logger.Instance.Debug(SourceFilePath, $"Сгенерирован Bitmap {bmp.Width}x{bmp.Height}, Кадр #{_imageCounter}");
             return bmp;
         }
     }

@@ -42,7 +42,7 @@ namespace Traktor.Core
             // Имя файла может включать дату для ротации логов, но для простоты пока одно имя.
             string logDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
             Directory.CreateDirectory(logDirectory); // Убедимся, что директория существует
-            _logFilePath = Path.Combine(logDirectory, $"TraktorApp_{DateTime.Now:yyyyMMdd}.log");
+            _logFilePath = Path.Combine(logDirectory, $"TraktorApp_{DateTime.Now:yyyyMMdd_HHmmss_fff}.log");
 
             // Запишем сообщение о старте логгера
             Log(LogLevel.Info, "Core/Logger.cs", "Логгер инициализирован. Начало сессии логирования.");

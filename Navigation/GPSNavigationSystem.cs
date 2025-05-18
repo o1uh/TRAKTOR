@@ -1,5 +1,6 @@
 using Traktor.Interfaces;
 using Traktor.DataModels;
+using Traktor.Core;   // Добавлено для Logger
 
 namespace Traktor.Navigation
 {
@@ -15,6 +16,7 @@ namespace Traktor.Navigation
         private static readonly Random _random = new Random(); // Один экземпляр Random для всего класса
 
         private const double GPS_NOISE_MAGNITUDE = 0.000005; // Небольшой шум для имитации неточности GPS
+        private const string SourceFilePath = "Navigation/GPSNavigationSystem.cs"; // Определяем константу
 
         /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="GPSNavigationSystem"/>.
@@ -24,7 +26,7 @@ namespace Traktor.Navigation
         {
             _currentSimulatedPosition = new Coordinates(0, 0); // Значение по умолчанию
             _isActive = false;
-            Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Система GPS навигации инициализирована. Позиция по умолчанию: {_currentSimulatedPosition}. Система НЕ АКТИВНА.");
+            Logger.Instance.Info(SourceFilePath, $"Система GPS навигации инициализирована. Позиция по умолчанию: {_currentSimulatedPosition}. Система НЕ АКТИВНА.");
         }
 
         /// <inheritdoc/>
@@ -33,7 +35,7 @@ namespace Traktor.Navigation
             string activeStatus = _isActive ? "АКТИВНА" : "НЕ АКТИВНА";
             // Логируем только если что-то важное (например, система не активна, но пытаются получить позицию)
             // или для детальной отладки. Пока оставим основной лог.
-            Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: GetPosition вызван. Система {activeStatus}.");
+            // Logger.Instance.Debug(SourceFilePath, $"GetPosition вызван. Система {activeStatus}."); // Закомментировано, чтобы не спамить
 
             // Имитация небольшого шума/погрешности GPS
             Coordinates reportedPosition = new Coordinates(
@@ -41,7 +43,7 @@ namespace Traktor.Navigation
                 _currentSimulatedPosition.Longitude + (_random.NextDouble() - 0.5) * GPS_NOISE_MAGNITUDE
             );
             // Следующий лог может спамить, если GetPosition вызывается часто. Оставим его закомментированным для продакшена.
-            Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: GetPosition. Симулированная: {_currentSimulatedPosition}, Возвращаемая с шумом: {reportedPosition}");
+            // Logger.Instance.Debug(SourceFilePath, $"GetPosition. Симулированная: {_currentSimulatedPosition}, Возвращаемая с шумом: {reportedPosition}"); // Закомментировано, чтобы не спамить
             return reportedPosition;
         }
 
@@ -50,12 +52,12 @@ namespace Traktor.Navigation
         {
             if (!_isActive)
             {
-                Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: CalculateRoute: Система НЕ АКТИВНА, расчет маршрута невозможен.");
+                Logger.Instance.Warning(SourceFilePath, $"CalculateRoute: Система НЕ АКТИВНА, расчет маршрута невозможен.");
                 return null; // Или пустой список: new List<Coordinates>();
             }
 
             Coordinates startPosition = this.GetPosition(); // Получаем "реальную" позицию с шумом
-            Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: CalculateRoute: Расчет маршрута от {startPosition} до {targetPosition}. Промежуточных точек на сегмент: {precisionPoints}. Границы поля: {(boundaries == null ? "не заданы" : "заданы")}.");
+            Logger.Instance.Info(SourceFilePath, $"CalculateRoute: Расчет маршрута от {startPosition} до {targetPosition}. Промежуточных точек на сегмент: {precisionPoints}. Границы поля: {(boundaries == null ? "не заданы" : "заданы")}.");
 
             List<Coordinates> route = new List<Coordinates>();
             route.Add(startPosition); // Начальная точка - это "текущая позиция"
@@ -80,7 +82,7 @@ namespace Traktor.Navigation
             // Здесь могла бы быть проверка на выход за boundaries, если они заданы.
             // Для макета пока опускаем.
 
-            Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: CalculateRoute: Маршрут рассчитан, {route.Count} точек.");
+            Logger.Instance.Info(SourceFilePath, $"CalculateRoute: Маршрут рассчитан, {route.Count} точек.");
             return route; // Возвращаем сам список, нет нужды в new List<Coordinates>(route) здесь
         }
 
@@ -89,30 +91,30 @@ namespace Traktor.Navigation
         {
             if (!_isActive)
             {
-                Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AdjustRoute: Система НЕ АКТИВНА, корректировка невозможна.");
+                Logger.Instance.Warning(SourceFilePath, $"AdjustRoute: Система НЕ АКТИВНА, корректировка невозможна.");
                 return null;
             }
 
             int currentRouteCount = currentRoute?.Count ?? 0;
             int obstaclesCount = detectedObstacles?.Count ?? 0;
-            Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AdjustRoute: Запрос на корректировку маршрута ({currentRouteCount} точек) из-за {obstaclesCount} препятствий.");
+            Logger.Instance.Info(SourceFilePath, $"AdjustRoute: Запрос на корректировку маршрута ({currentRouteCount} точек) из-за {obstaclesCount} препятствий.");
 
             if (currentRoute == null || !currentRoute.Any())
             {
-                Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AdjustRoute: Нет оригинального маршрута для корректировки.");
+                Logger.Instance.Warning(SourceFilePath, $"AdjustRoute: Нет оригинального маршрута для корректировки.");
                 return null;
             }
 
             if (detectedObstacles == null || !detectedObstacles.Any())
             {
-                Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AdjustRoute: Корректировка не требуется (препятствий нет). Возвращаем копию текущего маршрута.");
+                Logger.Instance.Info(SourceFilePath, $"AdjustRoute: Корректировка не требуется (препятствий нет). Возвращаем копию текущего маршрута.");
                 return new List<Coordinates>(currentRoute); // Возвращаем копию, чтобы избежать неожиданных изменений оригинала
             }
 
             // Имитация сложной логики корректировки
             if (_random.Next(0, 5) == 0) // Увеличим шанс успешной корректировки
             {
-                Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AdjustRoute: Имитация: корректировка маршрута НЕВОЗМОЖНА.");
+                Logger.Instance.Warning(SourceFilePath, $"AdjustRoute: Имитация: корректировка маршрута НЕВОЗМОЖНА.");
                 return null;
             }
 
@@ -121,7 +123,7 @@ namespace Traktor.Navigation
 
             if (containsRock)
             {
-                Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AdjustRoute: Обнаружен 'камень', применяем специфическую корректировку (небольшой сдвиг).");
+                Logger.Instance.Info(SourceFilePath, $"AdjustRoute: Обнаружен 'камень', применяем специфическую корректировку (небольшой сдвиг).");
                 for (int i = 0; i < adjustedRoute.Count; i++)
                 {
                     // Небольшой "объезд"
@@ -133,7 +135,7 @@ namespace Traktor.Navigation
             }
             else
             {
-                Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AdjustRoute: Обнаружено другое препятствие, применяем стандартную корректировку (небольшой сдвиг).");
+                Logger.Instance.Info(SourceFilePath, $"AdjustRoute: Обнаружено другое препятствие, применяем стандартную корректировку (небольшой сдвиг).");
                 for (int i = 0; i < adjustedRoute.Count; i++)
                 {
                     // Еще меньший, общий сдвиг
@@ -143,7 +145,7 @@ namespace Traktor.Navigation
                     );
                 }
             }
-            Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AdjustRoute: Скорректированный маршрут готов ({adjustedRoute.Count} точек).");
+            Logger.Instance.Info(SourceFilePath, $"AdjustRoute: Скорректированный маршрут готов ({adjustedRoute.Count} точек).");
             return adjustedRoute;
         }
 
@@ -152,7 +154,7 @@ namespace Traktor.Navigation
         {
             if (_isActive)
             {
-                Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: StartNavigation: Система GPS уже активна.");
+                Logger.Instance.Info(SourceFilePath, $"StartNavigation: Система GPS уже активна.");
                 return;
             }
 
@@ -160,41 +162,41 @@ namespace Traktor.Navigation
             if (_random.Next(0, 10) == 0) // 10% шанс сбоя
             {
                 _isActive = false;
-                Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: StartNavigation: НЕУДАЧА АКТИВАЦИИ. GPS модуль не смог запуститься корректно.");
+                Logger.Instance.Error(SourceFilePath, $"StartNavigation: НЕУДАЧА АКТИВАЦИИ. GPS модуль не смог запуститься корректно.");
             }
             else
             {
                 _isActive = true;
-                Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: StartNavigation: Система GPS успешно активирована. Текущая симулированная позиция: {_currentSimulatedPosition}.");
+                Logger.Instance.Info(SourceFilePath, $"StartNavigation: Система GPS успешно активирована. Текущая симулированная позиция: {_currentSimulatedPosition}.");
             }
         }
 
         /// <inheritdoc/>
         public List<Coordinates> StartNavigation(Coordinates initialTargetPosition, FieldBoundaries initialBoundaries = null, int initialPrecisionPoints = 3)
         {
-            Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: StartNavigation (с параметрами): Попытка активации системы GPS и расчета маршрута к {initialTargetPosition}.");
+            Logger.Instance.Info(SourceFilePath, $"StartNavigation (с параметрами): Попытка активации системы GPS и расчета маршрута к {initialTargetPosition}.");
 
             this.StartNavigation(); // Сначала пытаемся активировать систему (или проверяем, что она уже активна)
 
             if (!_isActive)
             {
-                Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: StartNavigation (с параметрами): Система GPS не активна после попытки запуска, первоначальный расчет маршрута невозможен.");
+                Logger.Instance.Warning(SourceFilePath, $"StartNavigation (с параметрами): Система GPS не активна после попытки запуска, первоначальный расчет маршрута невозможен.");
                 return null;
             }
 
             // Если система активна, текущая симулированная позиция уже должна быть установлена через UpdateSimulatedPosition.
             // Если нет, то _currentSimulatedPosition будет (0,0) или последнее известное значение.
-            Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: StartNavigation (с параметрами): Система активна. Текущая позиция для расчета: {_currentSimulatedPosition}. Выполняется первоначальный расчет маршрута...");
+            Logger.Instance.Info(SourceFilePath, $"StartNavigation (с параметрами): Система активна. Текущая позиция для расчета: {_currentSimulatedPosition}. Выполняется первоначальный расчет маршрута...");
 
             List<Coordinates> calculatedRoute = CalculateRoute(initialTargetPosition, initialBoundaries, initialPrecisionPoints);
 
             if (calculatedRoute == null || !calculatedRoute.Any())
             {
-                Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: StartNavigation (с параметрами): Первоначальный расчет маршрута не удался или вернул пустой маршрут (несмотря на активный GPS).");
+                Logger.Instance.Warning(SourceFilePath, $"StartNavigation (с параметрами): Первоначальный расчет маршрута не удался или вернул пустой маршрут (несмотря на активный GPS).");
             }
             else
             {
-                Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: StartNavigation (с параметрами): Первоначальный маршрут успешно рассчитан ({calculatedRoute.Count} точек).");
+                Logger.Instance.Info(SourceFilePath, $"StartNavigation (с параметрами): Первоначальный маршрут успешно рассчитан ({calculatedRoute.Count} точек).");
             }
             return calculatedRoute;
         }
@@ -205,18 +207,18 @@ namespace Traktor.Navigation
         {
             if (!_isActive)
             {
-                Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: StopNavigation: Система GPS уже неактивна.");
+                Logger.Instance.Info(SourceFilePath, $"StopNavigation: Система GPS уже неактивна.");
                 return;
             }
             _isActive = false;
-            Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: StopNavigation: Система GPS деактивирована.");
+            Logger.Instance.Info(SourceFilePath, $"StopNavigation: Система GPS деактивирована.");
         }
 
         /// <inheritdoc/>
         public void UpdateSimulatedPosition(Coordinates newPosition)
         {
             _currentSimulatedPosition = newPosition;
-            Console.WriteLine($"[Navigation/GPSNavigationSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: UpdateSimulatedPosition: Симулированная позиция GPS обновлена на: {newPosition}.");
+            Logger.Instance.Info(SourceFilePath, $"UpdateSimulatedPosition: Симулированная позиция GPS обновлена на: {newPosition}.");
         }
     }
 }

@@ -1,3 +1,5 @@
+using Traktor.Core; // Добавлено для Logger
+
 namespace Traktor.Implements
 {
     /// <summary>
@@ -37,14 +39,15 @@ namespace Traktor.Implements
 
         private bool _isOperationActive = false; // Флаг, что текущее оборудование активно выполняет операцию
 
-        private const string LogPrefix = "[Implements/ImplementControlSystem.cs]";
+        // private const string LogPrefix = "[Implements/ImplementControlSystem.cs]"; // Убрано, т.к. SourceFilePath будет использоваться
+        private const string SourceFilePath = "Implements/ImplementControlSystem.cs"; // Определяем константу
 
         /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="ImplementControlSystem"/>.
         /// </summary>
         public ImplementControlSystem()
         {
-            Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Система управления навесным оборудованием инициализирована.");
+            Logger.Instance.Info(SourceFilePath, "Система управления навесным оборудованием инициализирована.");
         }
 
         /// <summary>
@@ -56,7 +59,7 @@ namespace Traktor.Implements
         {
             if (_isOperationActive)
             {
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AttachImplement: Нельзя сменить оборудование на '{type}', пока текущее ({_activeImplementType}) активно выполняет операцию. Сначала деактивируйте операцию.");
+                Logger.Instance.Warning(SourceFilePath, $"AttachImplement: Нельзя сменить оборудование на '{type}', пока текущее ({_activeImplementType}) активно выполняет операцию. Сначала деактивируйте операцию.");
                 return;
             }
             _activeImplementType = type;
@@ -64,7 +67,7 @@ namespace Traktor.Implements
             _currentPloughDepth = 0;
             _currentSeedingRate = 0;
             _currentSprayerIntensity = 0;
-            Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AttachImplement: Подключено (выбрано) оборудование: {_activeImplementType}. Параметры сброшены.");
+            Logger.Instance.Info(SourceFilePath, $"AttachImplement: Подключено (выбрано) оборудование: {_activeImplementType}. Параметры сброшены.");
         }
 
         /// <summary>
@@ -75,17 +78,17 @@ namespace Traktor.Implements
         {
             if (_activeImplementType != ImplementType.Plough)
             {
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: SetPloughDepth: Плуг не подключен/выбран. Текущее оборудование: {_activeImplementType}.");
+                Logger.Instance.Warning(SourceFilePath, $"SetPloughDepth: Плуг не подключен/выбран. Текущее оборудование: {_activeImplementType}.");
                 return;
             }
             // Можно разрешить установку параметров даже если операция не активна,
             // но сами параметры будут применены только при активации.
             // if (!_isOperationActive)
             // {
-            //     Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: SetPloughDepth: Плуг не выполняет операцию. Параметр будет применен при активации.");
+            //     Logger.Instance.Debug(SourceFilePath, "SetPloughDepth: Плуг не выполняет операцию. Параметр будет применен при активации.");
             // }
             _currentPloughDepth = Math.Max(0, depth); // Глубина не может быть отрицательной
-            Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: SetPloughDepth: Установлена глубина вспашки: {_currentPloughDepth:F2} м.");
+            Logger.Instance.Info(SourceFilePath, $"SetPloughDepth: Установлена глубина вспашки: {_currentPloughDepth:F2} м.");
         }
 
         /// <summary>
@@ -96,11 +99,11 @@ namespace Traktor.Implements
         {
             if (_activeImplementType != ImplementType.Seeder)
             {
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: SetSeederRate: Сеялка не подключена/выбрана. Текущее оборудование: {_activeImplementType}.");
+                Logger.Instance.Warning(SourceFilePath, $"SetSeederRate: Сеялка не подключена/выбрана. Текущее оборудование: {_activeImplementType}.");
                 return;
             }
             _currentSeedingRate = Math.Max(0, rate);
-            Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: SetSeederRate: Установлена норма высева: {_currentSeedingRate:F2} (условных единиц).");
+            Logger.Instance.Info(SourceFilePath, $"SetSeederRate: Установлена норма высева: {_currentSeedingRate:F2} (условных единиц).");
         }
 
         /// <summary>
@@ -111,11 +114,11 @@ namespace Traktor.Implements
         {
             if (_activeImplementType != ImplementType.Sprayer)
             {
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: SetSprayerIntensity: Опрыскиватель не подключен/выбран. Текущее оборудование: {_activeImplementType}.");
+                Logger.Instance.Warning(SourceFilePath, $"SetSprayerIntensity: Опрыскиватель не подключен/выбран. Текущее оборудование: {_activeImplementType}.");
                 return;
             }
             _currentSprayerIntensity = Math.Clamp(intensity, 0, 100); // Интенсивность от 0 до 100%
-            Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: SetSprayerIntensity: Установлена интенсивность опрыскивания: {_currentSprayerIntensity:F1}%.");
+            Logger.Instance.Info(SourceFilePath, $"SetSprayerIntensity: Установлена интенсивность опрыскивания: {_currentSprayerIntensity:F1}%.");
         }
 
         /// <summary>
@@ -125,19 +128,19 @@ namespace Traktor.Implements
         {
             if (_activeImplementType == ImplementType.None)
             {
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: ActivateOperation: Оборудование не подключено/не выбрано. Активация невозможна.");
+                Logger.Instance.Warning(SourceFilePath, "ActivateOperation: Оборудование не подключено/не выбрано. Активация невозможна.");
                 return;
             }
             if (_isOperationActive)
             {
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: ActivateOperation: Операция с оборудованием ({_activeImplementType}) уже активна.");
+                Logger.Instance.Info(SourceFilePath, $"ActivateOperation: Операция с оборудованием ({_activeImplementType}) уже активна.");
                 return;
             }
             _isOperationActive = true;
-            Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: ActivateOperation: Операция с оборудованием ({_activeImplementType}) АКТИВИРОВАНА.");
+            Logger.Instance.Info(SourceFilePath, $"ActivateOperation: Операция с оборудованием ({_activeImplementType}) АКТИВИРОВАНА.");
             // Здесь могла бы быть реальная логика: команда на опускание плуга, включение сеялки/опрыскивателя.
             // Например, в зависимости от _activeImplementType и установленных параметров:
-            // if (_activeImplementType == ImplementType.Plough) Console.WriteLine($"...Плуг опущен на глубину {_currentPloughDepth:F2}м.");
+            // if (_activeImplementType == ImplementType.Plough) Logger.Instance.Debug(SourceFilePath, $"...Плуг опущен на глубину {_currentPloughDepth:F2}м.");
         }
 
         /// <summary>
@@ -147,11 +150,11 @@ namespace Traktor.Implements
         {
             if (!_isOperationActive)
             {
-                Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DeactivateOperation: Операция с оборудованием уже деактивирована.");
+                Logger.Instance.Info(SourceFilePath, "DeactivateOperation: Операция с оборудованием уже деактивирована.");
                 return;
             }
             _isOperationActive = false;
-            Console.WriteLine($"{LogPrefix}-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DeactivateOperation: Операция с оборудованием ({_activeImplementType}) ДЕАКТИВИРОВАНА.");
+            Logger.Instance.Info(SourceFilePath, $"DeactivateOperation: Операция с оборудованием ({_activeImplementType}) ДЕАКТИВИРОВАНА.");
             // Сброс операционных параметров (глубины, нормы) при деактивации операции может быть не нужен,
             // т.к. они могут понадобиться при следующей активации. Но это зависит от требований.
         }

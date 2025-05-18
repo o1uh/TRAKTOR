@@ -1,5 +1,6 @@
 using Traktor.Interfaces;
 using Traktor.DataModels;
+using Traktor.Core;   // Добавлено для Logger
 
 namespace Traktor.ComputerVision
 {
@@ -11,6 +12,7 @@ namespace Traktor.ComputerVision
     {
         private static readonly Random _random = new Random();
         private bool _isSystemActive = true; // Внутренний флаг активности, если нужен.
+        private const string SourceFilePath = "ComputerVision/LidarVisionSystem.cs"; // Определяем константу
 
         /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="LidarVisionSystem"/>.
@@ -18,7 +20,7 @@ namespace Traktor.ComputerVision
         public LidarVisionSystem()
         {
             // _isSystemActive = true; // По умолчанию активна при создании
-            Console.WriteLine($"[ComputerVision/LidarVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Система технического зрения LiDAR инициализирована. Активна: {_isSystemActive}");
+            Logger.Instance.Info(SourceFilePath, $"Система технического зрения LiDAR инициализирована. Активна: {_isSystemActive}");
         }
 
         /// <inheritdoc/>
@@ -26,11 +28,11 @@ namespace Traktor.ComputerVision
         {
             if (!_isSystemActive)
             {
-                Console.WriteLine($"[ComputerVision/LidarVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles: Система LiDAR не активна. Обнаружение препятствий невозможно.");
+                Logger.Instance.Warning(SourceFilePath, $"DetectObstacles: Система LiDAR не активна. Обнаружение препятствий невозможно.");
                 return new List<ObstacleData>();
             }
 
-            Console.WriteLine($"[ComputerVision/LidarVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles: Обнаружение препятствий по данным LiDAR. Текущая позиция трактора: {currentTractorPosition}");
+            Logger.Instance.Debug(SourceFilePath, $"DetectObstacles: Обнаружение препятствий по данным LiDAR. Текущая позиция трактора: {currentTractorPosition}");
             List<ObstacleData> detectedObstacles = new List<ObstacleData>();
 
             // Имитация обнаружения препятствий LiDAR'ом
@@ -62,11 +64,11 @@ namespace Traktor.ComputerVision
                 else description = "Резкий уклон/обрыв (LiDAR)";
 
                 detectedObstacles.Add(new ObstacleData(obstaclePos, description));
-                Console.WriteLine($"[ComputerVision/LidarVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles: Обнаружено: \"{description}\" в {obstaclePos}");
+                Logger.Instance.Info(SourceFilePath, $"DetectObstacles: Обнаружено: \"{description}\" в {obstaclePos}");
             }
             else
             {
-                Console.WriteLine($"[ComputerVision/LidarVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: DetectObstacles: Препятствий по данным LiDAR не обнаружено.");
+                Logger.Instance.Debug(SourceFilePath, "DetectObstacles: Препятствий по данным LiDAR не обнаружено.");
             }
             return detectedObstacles;
         }
@@ -75,7 +77,7 @@ namespace Traktor.ComputerVision
         public List<FieldFeatureData> AnalyzeFieldFeatures(Coordinates currentTractorPosition)
         {
             // LiDAR обычно не используется для детального анализа агрономических особенностей поля, таких как сорняки.
-            Console.WriteLine($"[ComputerVision/LidarVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: AnalyzeFieldFeatures (для трактора в {currentTractorPosition}): Метод не поддерживается системой LiDAR. Возвращен пустой список.");
+            Logger.Instance.Info(SourceFilePath, $"AnalyzeFieldFeatures (для трактора в {currentTractorPosition}): Метод не поддерживается системой LiDAR. Возвращен пустой список.");
             return new List<FieldFeatureData>(); // LiDAR не анализирует такие особенности
         }
 
@@ -87,7 +89,7 @@ namespace Traktor.ComputerVision
         public void ActivateInternal()
         {
             _isSystemActive = true;
-            Console.WriteLine($"[ComputerVision/LidarVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Система LiDAR внутренне активирована.");
+            Logger.Instance.Info(SourceFilePath, "Система LiDAR внутренне активирована.");
         }
 
         /// <summary>
@@ -96,7 +98,7 @@ namespace Traktor.ComputerVision
         public void DeactivateInternal()
         {
             _isSystemActive = false;
-            Console.WriteLine($"[ComputerVision/LidarVisionSystem.cs]-[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}]: Система LiDAR внутренне деактивирована.");
+            Logger.Instance.Info(SourceFilePath, "Система LiDAR внутренне деактивирована.");
         }
     }
 }
