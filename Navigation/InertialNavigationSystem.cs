@@ -1,92 +1,84 @@
-using System.Collections.Generic;
 using Traktor.Interfaces;
 using Traktor.DataModels;
-using System;
-using System.Linq;
+
 
 namespace Traktor.Navigation
 {
     public class InertialNavigationSystem : INavigationSystem
     {
-        private Coordinates _currentEstimatedPosition; // Позиция, вычисленная ИНС
-        private DateTime _lastUpdateTime;              // Время последнего обновления/выставления
-        private bool _isActiveAndInitialized = false;  // Флаг активности и инициализации
+        private Coordinates _currentEstimatedPosition;
+        private DateTime _lastInitializationTime;
+        private bool _isInitializedAndActive = false;
         private readonly Random _random = new Random();
 
-        // Конструктор может быть простым. Начальная позиция задается при StartNavigation.
-        public InertialNavigationSystem(Coordinates approximateInitialLocation)
+        public InertialNavigationSystem()
         {
-            // approximateInitialLocation может использоваться для какой-то предварительной настройки,
-            // но реальная выставка - в StartNavigation.
-            _currentEstimatedPosition = approximateInitialLocation; // Просто для хранения до инициализации
-            Console.WriteLine($"[InertialNavSystem]: Объект создан. Позиция по умолчанию: {_currentEstimatedPosition}. Система НЕ АКТИВНА и НЕ ИНИЦИАЛИЗИРОВАНА.");
+            _currentEstimatedPosition = new Coordinates(0, 0);
+            _lastInitializationTime = DateTime.MinValue;
+            Console.WriteLine($"[InertialNavSystem]: Объект создан. Ожидает инициализации через StartAndCalculateInitialRoute.");
         }
 
-        public List<Coordinates> StartNavigation(Coordinates initialStartPosition, Coordinates initialTargetPosition, FieldBoundaries initialBoundaries = null, int initialPrecisionPoints = 3)
+        public List<Coordinates> StartNavigation(Coordinates systemInitialВыставкаPosition, Coordinates initialTargetPosition, FieldBoundaries initialBoundaries = null, int initialPrecisionPoints = 3)
         {
-            Console.WriteLine($"[InertialNavSystem]: Попытка активации и инициализации с позиции {initialStartPosition}.");
-
+            Console.WriteLine($"[InertialNavSystem]: Попытка активации и инициализации. Начальная позиция для выставки: {systemInitialВыставкаPosition}.");
             // Имитация возможной неудачи инициализации ИНС (например, сбой датчиков при калибровке)
             if (_random.Next(0, 10) == 0) // 10% шанс неудачи инициализации
             {
-                _isActiveAndInitialized = false;
-                Console.WriteLine("[InertialNavSystem]: НЕУДАЧА ИНИЦИАЛИЗАЦИИ. Не удалось откалибровать или выставить систему.");
-                return null; // Сигнал о неудаче запуска
+                _isInitializedAndActive = false;
+                Console.WriteLine("[InertialNavSystem]: НЕУДАЧА ИНИЦИАЛИЗАЦИИ/АКТИВАЦИИ.");
+                return null;
             }
 
-            _currentEstimatedPosition = initialStartPosition;
-            _lastUpdateTime = DateTime.Now;
-            // Здесь могли бы сбрасываться накопленные скорости/ускорения, если бы они были
-            _isActiveAndInitialized = true;
+            _currentEstimatedPosition = systemInitialВыставкаPosition;
+            _lastInitializationTime = DateTime.Now;
+            _isInitializedAndActive = true;
             Console.WriteLine($"[InertialNavSystem]: Система ИНС успешно активирована и инициализирована. Позиция выставлена: {_currentEstimatedPosition}.");
 
-            Console.WriteLine("[InertialNavSystem]: Выполняется первоначальный расчет маршрута при активации...");
-            // Расчет маршрута на основе только что выставленной позиции
-            return CalculateRoute(initialStartPosition, initialTargetPosition, initialBoundaries, initialPrecisionPoints);
+            Console.WriteLine("[InertialNavSystem]: Выполняется первоначальный расчет маршрута...");
+            return CalculateRoute(initialTargetPosition, initialBoundaries, initialPrecisionPoints);
         }
 
         public void StopNavigation()
         {
-            _isActiveAndInitialized = false; // Деактивируем и сбрасываем флаг инициализации
-            Console.WriteLine("[InertialNavSystem]: Система ИНС деактивирована (StopNavigation). Требуется повторная инициализация через StartNavigation.");
+            _isInitializedAndActive = false;
+            Console.WriteLine("[InertialNavSystem]: Система ИНС деактивирована.");
         }
 
         public Coordinates GetPosition()
         {
-            if (!_isActiveAndInitialized)
+            if (!_isInitializedAndActive)
             {
-                Console.WriteLine("[InertialNavSystem]: GetPosition - система НЕ АКТИВНА или НЕ ИНИЦИАЛИЗИРОВАНА.");
-                return new Coordinates(double.NaN, double.NaN); // Невалидные координаты
+                Console.WriteLine("[InertialNavSystem]: GetPosition - система НЕ АКТИВНА или НЕ ИНИЦИАЛИЗИРОВАНА. Возвращаем последнюю позицию.");
+                return _currentEstimatedPosition;
             }
 
-            // Имитация дрейфа ИНС с течением времени
-            TimeSpan timeSinceLastUpdate = DateTime.Now - _lastUpdateTime;
-            double driftFactor = timeSinceLastUpdate.TotalSeconds * 0.000002; // Увеличивающийся дрейф
+            TimeSpan timeSinceLastInitialization = DateTime.Now - _lastInitializationTime;
 
-            _currentEstimatedPosition = new Coordinates(
-                _currentEstimatedPosition.Latitude + (_random.NextDouble() - 0.5) * driftFactor,
-                _currentEstimatedPosition.Longitude + (_random.NextDouble() - 0.5) * driftFactor
-            );
-            // Важно: в реальной ИНС _currentEstimatedPosition обновлялась бы на основе данных IMU,
-            // а не просто дрейфовала бы от времени. Этот дрейф - очень грубая имитация накопления ошибки.
-            // _lastUpdateTime здесь не обновляем, чтобы дрейф продолжал накапливаться от точки последней выставки.
+            if (timeSinceLastInitialization.TotalSeconds > 0.2)
+            {
+                double driftMagnitude = timeSinceLastInitialization.TotalSeconds * 0.000003;
+                _currentEstimatedPosition = new Coordinates(
+                    _currentEstimatedPosition.Latitude + (_random.NextDouble() - 0.5) * driftMagnitude,
+                    _currentEstimatedPosition.Longitude + (_random.NextDouble() - 0.5) * driftMagnitude
+                );
+                // _lastInitializationTime НЕ обновляем здесь, дрейф накапливается от последней выставки.
+                // Обновление _currentEstimatedPosition здесь имитирует непрерывную работу ИНС с дрейфом.
+                Console.WriteLine($"[InertialNavSystem]: GetPosition - применен дрейф. Новая позиция: {_currentEstimatedPosition}");
+            }
 
-            // Console.WriteLine($"[InertialNavSystem]: GetPosition возвращает (с дрейфом): {_currentEstimatedPosition}");
             return _currentEstimatedPosition;
         }
 
-        public List<Coordinates> CalculateRoute(Coordinates startPosition, Coordinates targetPosition, FieldBoundaries boundaries = null, int precisionPoints = 3)
+        public List<Coordinates> CalculateRoute(Coordinates targetPosition, FieldBoundaries boundaries = null, int precisionPoints = 3)
         {
-            if (!_isActiveAndInitialized)
+            if (!_isInitializedAndActive)
             {
                 Console.WriteLine("[InertialNavSystem]: CalculateRoute - система НЕ АКТИВНА или НЕ ИНИЦИАЛИЗИРОВАНА.");
                 return null;
             }
 
-            Console.WriteLine($"[InertialNavSystem]: Расчет маршрута от {startPosition} (ИНС считает текущей {_currentEstimatedPosition}) до {targetPosition}.");
-            // Для ИНС, startPosition для расчета маршрута обычно берется из ее собственного GetPosition()
-            // или из той startPosition, которую передал ControlUnit (которая должна быть актуальной).
-            // Используем переданную startPosition, предполагая, что ControlUnit передает актуальные данные.
+            Coordinates startPosition = this.GetPosition(); // Используем текущую оценку ИНС
+            Console.WriteLine($"[InertialNavSystem]: Расчет маршрута от ТЕКУЩЕЙ ОЦЕНКИ ИНС ({startPosition}) до {targetPosition}.");
 
             List<Coordinates> route = new List<Coordinates>();
             route.Add(startPosition);
@@ -103,48 +95,52 @@ namespace Traktor.Navigation
             route.Add(targetPosition);
 
             Console.WriteLine($"[InertialNavSystem]: Маршрут рассчитан, {route.Count} точек.");
-            return new List<Coordinates>(route);
+            return route;
         }
 
         public List<Coordinates> AdjustRoute(List<Coordinates> currentRoute, List<ObstacleData> detectedObstacles)
         {
-            if (!_isActiveAndInitialized)
+            if (!_isInitializedAndActive)
             {
                 Console.WriteLine("[InertialNavSystem]: AdjustRoute - система НЕ АКТИВНА или НЕ ИНИЦИАЛИЗИРОВАНА.");
                 return null;
             }
-            // ... (логика аналогична GPSNavigationSystem, включая шанс невозможности) ...
-            Console.WriteLine($"[InertialNavSystem]: Запрос на корректировку маршрута ({currentRoute?.Count ?? 0} точек) из-за {detectedObstacles?.Count ?? 0} препятствий.");
-            if (currentRoute == null || !currentRoute.Any()) { return null; }
-            if (detectedObstacles == null || !detectedObstacles.Any()) { return new List<Coordinates>(currentRoute); }
 
-            if (_random.Next(0, 2) == 0) // 50% шанс "невозможности" для ИНС
+            Console.WriteLine($"[InertialNavSystem]: Запрос на корректировку маршрута ({currentRoute?.Count ?? 0} точек) из-за {detectedObstacles?.Count ?? 0} препятствий.");
+            if (currentRoute == null || !currentRoute.Any()) { Console.WriteLine("[InertialNavSystem]: Нет оригинального маршрута."); return null; }
+            if (detectedObstacles == null || !detectedObstacles.Any()) { Console.WriteLine("[InertialNavSystem]: Нет препятствий для корректировки."); return new List<Coordinates>(currentRoute); }
+
+            if (_random.Next(0, 2) == 0)
             {
                 Console.WriteLine("[InertialNavSystem]: Корректировка маршрута НЕВОЗМОЖНА (имитация для ИНС).");
                 return null;
             }
-
             List<Coordinates> adjustedRoute = new List<Coordinates>(currentRoute);
-            // ... (простая логика смещения, как в GPSNavigationSystem) ...
-            Console.WriteLine($"[InertialNavSystem]: Маршрут был изменен (имитация для ИНС).");
-            return new List<Coordinates>(adjustedRoute);
+            // Имитация корректировки
+            Console.WriteLine($"[InertialNavSystem]: Маршрут был изменен (имитация).");
+            for (int i = 0; i < adjustedRoute.Count; i++)
+            {
+                adjustedRoute[i] = new Coordinates(
+                    adjustedRoute[i].Latitude + (_random.NextDouble() - 0.5) * 0.00015,
+                    adjustedRoute[i].Longitude + (_random.NextDouble() - 0.5) * 0.00015
+                );
+            }
+            return adjustedRoute;
         }
 
         public void UpdateSimulatedPosition(Coordinates newPosition)
         {
-            // Для "чистой" ИНС, которая сама вычисляет свою позицию на основе инерциальных данных,
-            // этот метод не должен напрямую "телепортировать" ее.
-            // Выставление ИНС должно происходить через StartNavigation.
-            // Если ControlUnit получил точную позицию от GPS и хочет "скорректировать" ИНС,
-            // он должен вызвать StopNavigation() для ИНС, а затем StartNavigation() с новыми координатами.
-            Console.WriteLine($"[InertialNavSystem]: UpdateSimulatedPosition вызван. Для ИНС используйте StopNavigation() и StartNavigation() с новыми координатами для переинициализации/выставки.");
-            // Можно, конечно, добавить "жесткую" перевыставку, если это нужно для симуляции:
-            // if (_isActiveAndInitialized)
-            // {
-            //     _currentEstimatedPosition = newPosition;
-            //     _lastUpdateTime = DateTime.Now; // Сбросить время для дрейфа
-            //     Console.WriteLine($"[InertialNavSystem]: ВНИМАНИЕ! Позиция ИНС принудительно обновлена (жесткая перевыставка): {_currentEstimatedPosition}");
-            // }
+            Console.WriteLine($"[InertialNavSystem]: UpdateSimulatedPosition вызван с {newPosition}. Для ИНС это равносильно перевыставке.");
+            _currentEstimatedPosition = newPosition;
+            if (_isInitializedAndActive)
+            {
+                _lastInitializationTime = DateTime.Now;
+                Console.WriteLine($"[InertialNavSystem]: Позиция ИНС принудительно обновлена, время дрейфа сброшено: {_currentEstimatedPosition}");
+            }
+            else
+            {
+                Console.WriteLine($"[InertialNavSystem]: Позиция ИНС обновлена, но система не была активна. Вызовите StartAndCalculateInitialRoute для полной инициализации.");
+            }
         }
     }
 }

@@ -1,43 +1,41 @@
 using Traktor.Interfaces;
 using Traktor.DataModels;
 
+
 namespace Traktor.Navigation
 {
     public class GPSNavigationSystem : INavigationSystem
     {
         private Coordinates _currentSimulatedPosition;
-        private bool _isActive = false; // Система по умолчанию не активна (в "спящем режиме")
+        private bool _isActive = false;
         private readonly Random _random = new Random();
 
-        public GPSNavigationSystem(Coordinates initialPosition)
+        public GPSNavigationSystem() // Конструктор без параметров
         {
-            // При инициализации объекта GPS-системы, она может быть еще не "включена"
-            // _currentSimulatedPosition хранит позицию, где трактор "появился" или был в последний раз.
-            _currentSimulatedPosition = initialPosition;
-            Console.WriteLine($"[GPSNavigationSystem]: Объект создан. Начальная симулированная позиция: {_currentSimulatedPosition}. Система НЕ АКТИВНА.");
+            _currentSimulatedPosition = new Coordinates(0, 0); // Значение по умолчанию
+            Console.WriteLine($"[GPSNavigationSystem]: Объект создан. Позиция по умолчанию: {_currentSimulatedPosition}. Система НЕ АКТИВНА.");
         }
 
         public Coordinates GetPosition()
         {
             if (!_isActive)
             {
-                Console.WriteLine("[GPSNavigationSystem]: GetPosition - система НЕ АКТИВНА. Возвращаем последнюю известную позицию (или можно бросить исключение).");
-                // Для макета просто вернем, но в реальной системе это может быть ошибкой.
+                Console.WriteLine("[GPSNavigationSystem]: GetPosition - система НЕ АКТИВНА. Возвращаем последнюю известную позицию.");
             }
-            else
+            else // Можно убрать else, если нет специфичного лога для активного состояния здесь
             {
-                Console.WriteLine("[GPSNavigationSystem]: GetPosition - система АКТИВНА.");
+                 Console.WriteLine("[GPSNavigationSystem]: GetPosition - система АКТИВНА.");
             }
 
             Coordinates reportedPosition = new Coordinates(
                 _currentSimulatedPosition.Latitude + (_random.NextDouble() - 0.5) * 0.000001, // Легкий шум
                 _currentSimulatedPosition.Longitude + (_random.NextDouble() - 0.5) * 0.000001
             );
-            Console.WriteLine($"[GPSNavigationSystem]: GetPosition возвращает: {reportedPosition}");
+            Console.WriteLine($"[GPSNavigationSystem]: GetPosition возвращает: {reportedPosition}"); // Закомментировано, чтобы не спамить
             return reportedPosition;
         }
 
-        public List<Coordinates> CalculateRoute(Coordinates startPosition, Coordinates targetPosition, FieldBoundaries boundaries = null, int precisionPoints = 3)
+        public List<Coordinates> CalculateRoute(Coordinates targetPosition, FieldBoundaries boundaries = null, int precisionPoints = 3)
         {
             if (!_isActive)
             {
@@ -45,12 +43,13 @@ namespace Traktor.Navigation
                 return null;
             }
 
-            Console.WriteLine($"[GPSNavigationSystem]: Расчет маршрута от {startPosition} до {targetPosition} с {precisionPoints} промежуточными точками.");
+            Coordinates startPosition = this.GetPosition(); // Используем текущую позицию как стартовую
+            Console.WriteLine($"[GPSNavigationSystem]: Расчет маршрута от ТЕКУЩЕЙ ({startPosition}) до {targetPosition} с {precisionPoints} промежуточными точками.");
 
             List<Coordinates> route = new List<Coordinates>();
             route.Add(startPosition);
 
-            int totalSegments = Math.Max(1, precisionPoints + 1); // Минимум 1 сегмент (прямая)
+            int totalSegments = Math.Max(1, precisionPoints + 1);
             for (int i = 1; i < totalSegments; i++)
             {
                 double fraction = (double)i / totalSegments;
@@ -62,8 +61,6 @@ namespace Traktor.Navigation
             route.Add(targetPosition);
 
             Console.WriteLine($"[GPSNavigationSystem]: Маршрут рассчитан, {route.Count} точек.");
-            // Этот метод не меняет _currentSimulatedPosition, т.к. это просто расчет.
-            // Движение и обновление позиции - ответственность ControlUnit через UpdateSimulatedPosition.
             return new List<Coordinates>(route);
         }
 
@@ -131,31 +128,30 @@ namespace Traktor.Navigation
             Console.WriteLine("[GPSNavigationSystem]: Система GPS деактивирована (StopNavigation).");
         }
 
-        public List<Coordinates> StartNavigation(Coordinates initialStartPosition, Coordinates initialTargetPosition, FieldBoundaries initialBoundaries = null, int initialPrecisionPoints = 3)
+        public List<Coordinates> StartNavigation(Coordinates systemInitialВыставкаPosition, Coordinates initialTargetPosition, FieldBoundaries initialBoundaries = null, int initialPrecisionPoints = 3)
         {
-            Console.WriteLine("[GPSNavigationSystem]: Попытка активации системы GPS (StartNavigation)...");
+            Console.WriteLine($"[GPSNavigationSystem]: Попытка активации системы GPS. Начальная позиция для выставки: {systemInitialВыставкаPosition}.");
 
-            // Имитация возможной неудачи при запуске GPS модуля (например, не поймал спутники)
-            if (_random.Next(0, 5) == 0) // 20% шанс неудачи запуска
+            if (_random.Next(0, 5) == 0)
             {
-                _isActive = false; // Убедимся, что система не активна
+                _isActive = false;
                 Console.WriteLine("[GPSNavigationSystem]: НЕУДАЧА АКТИВАЦИИ. GPS модуль не смог запуститься корректно.");
-                return null; // Возвращаем null, чтобы ControlUnit понял, что запуск не удался
+                return null;
             }
 
             _isActive = true;
-            UpdateSimulatedPosition(initialStartPosition); // Устанавливаем начальную позицию, как и раньше
-            Console.WriteLine($"[GPSNavigationSystem]: Система GPS успешно активирована. Симулированная позиция установлена на {initialStartPosition}.");
+            // Устанавливаем _currentSimulatedPosition в точку, где система "выставляется"
+            _currentSimulatedPosition = systemInitialВыставкаPosition;
+            Console.WriteLine($"[GPSNavigationSystem]: Система GPS успешно активирована. Симулированная позиция установлена на {_currentSimulatedPosition}.");
 
-            // Если активация успешна, сразу же рассчитываем первый маршрут
             Console.WriteLine("[GPSNavigationSystem]: Выполняется первоначальный расчет маршрута при активации...");
-            List<Coordinates> calculatedRoute = CalculateRoute(initialStartPosition, initialTargetPosition, initialBoundaries, initialPrecisionPoints);
+            // CalculateRoute теперь не принимает startPosition, он возьмет ее из this.GetPosition()
+            List<Coordinates> calculatedRoute = CalculateRoute(initialTargetPosition, initialBoundaries, initialPrecisionPoints);
 
             if (calculatedRoute == null)
             {
-                Console.WriteLine("[GPSNavigationSystem]: Первоначальный расчет маршрута не удался (несмотря на активный GPS). Система остается активной, но без маршрута.");
-                // _isActive можно оставить true, т.к. сам GPS модуль "завелся", но маршрут не построился.
-                // ControlUnit должен будет обработать null от CalculateRoute.
+                Console.WriteLine("[GPSNavigationSystem]: Первоначальный расчет маршрута не удался (несмотря на активный GPS).");
+                // _isActive остается true, так как сам GPS модуль "завелся". ControlUnit обработает null.
             }
 
             return calculatedRoute;
@@ -163,9 +159,6 @@ namespace Traktor.Navigation
 
         public void UpdateSimulatedPosition(Coordinates newPosition)
         {
-            // Этот метод нужен ControlUnit'у, чтобы сообщать GPS-системе (в рамках симуляции),
-            // где трактор "оказался" после имитации шага движения.
-            // В реальной системе GPS сам бы определял новую позицию.
             _currentSimulatedPosition = newPosition;
             Console.WriteLine($"[GPSNavigationSystem]: Симулированная позиция обновлена ControlUnit'ом: {_currentSimulatedPosition}");
         }

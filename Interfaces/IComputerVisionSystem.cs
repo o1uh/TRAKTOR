@@ -5,24 +5,19 @@ namespace Traktor.Interfaces
     public interface IComputerVisionSystem
     {
         /// <summary>
-        /// Обнаруживает препятствия на поле.
+        /// Обнаруживает физические препятствия на поле.
+        /// Система сама отвечает за получение данных со своих сенсоров.
         /// </summary>
-        /// <param name="sensorInput">Опциональные "сырые" данные с сенсора.</param>
-        /// <returns>
-        /// Список <see cref="ObstacleData"/> обнаруженных препятствий.
-        /// Пустой список, если препятствий нет.
-        /// </returns>
-        List<ObstacleData> DetectObstacles(object sensorInput = null);
+        /// <param name="currentTractorPosition">Текущее положение трактора.</param>
+        /// <returns>Список обнаруженных препятствий <see cref="ObstacleData"/>.</returns>
+        List<ObstacleData> DetectObstacles(Coordinates currentTractorPosition);
 
         /// <summary>
-        /// Анализирует состояние выбранных точек/участков поля.
+        /// Анализирует видимую зону поля для обнаружения специфических особенностей (например, опасных сорняков).
+        /// Система сама отвечает за получение данных со своих сенсоров.
         /// </summary>
-        /// <param name="targetCoordinates">Список координат точек/участков для анализа. Если null или пуст, может анализировать текущую зону видимости.</param>
-        /// <param name="sensorInput">Опциональные "сырые" данные с сенсора.</param>
-        /// <returns>
-        /// Список <see cref="FieldPointAnalysis"/> с результатами анализа для каждой запрошенной точки/участка.
-        /// Может вернуть пустой список, если анализ не дал результатов.
-        /// </returns>
-        List<FieldPointAnalysis> AnalyzeFieldPoints(List<Coordinates> targetCoordinates = null, object sensorInput = null);
+        /// <param name="currentTractorPosition">Текущее положение трактора (для привязки найденных особенностей).</param>
+        /// <returns>Список обнаруженных особенностей поля <see cref="FieldFeatureData"/>.</returns>
+        List<FieldFeatureData> AnalyzeFieldFeatures(Coordinates currentTractorPosition); // Убран areaOfInterest
     }
 }
