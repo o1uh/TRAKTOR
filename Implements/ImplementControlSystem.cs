@@ -1,4 +1,4 @@
-using Traktor.Core; // Добавлено для Logger
+using Traktor.Core; 
 
 namespace Traktor.Implements
 {
@@ -33,14 +33,13 @@ namespace Traktor.Implements
     public class ImplementControlSystem
     {
         private ImplementType _activeImplementType = ImplementType.None;
-        private double _currentPloughDepth = 0;         // метры
-        private double _currentSeedingRate = 0;       // условных единиц (кг/га или семян/метр)
-        private double _currentSprayerIntensity = 0;  // проценты (0-100)
+        private double _currentPloughDepth = 0; // метры
+        private double _currentSeedingRate = 0; // условных единиц (кг/га или семян/метр)
+        private double _currentSprayerIntensity = 0; // проценты (0-100)
 
         private bool _isOperationActive = false; // Флаг, что текущее оборудование активно выполняет операцию
 
-        // private const string LogPrefix = "[Implements/ImplementControlSystem.cs]"; // Убрано, т.к. SourceFilePath будет использоваться
-        private const string SourceFilePath = "Implements/ImplementControlSystem.cs"; // Определяем константу
+        private const string SourceFilePath = "Implements/ImplementControlSystem.cs"; 
 
         /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="ImplementControlSystem"/>.
@@ -63,7 +62,7 @@ namespace Traktor.Implements
                 return;
             }
             _activeImplementType = type;
-            // Сброс параметров предыдущего оборудования (опционально, но логично)
+            // Сброс параметров предыдущего оборудования
             _currentPloughDepth = 0;
             _currentSeedingRate = 0;
             _currentSprayerIntensity = 0;
@@ -81,13 +80,11 @@ namespace Traktor.Implements
                 Logger.Instance.Warning(SourceFilePath, $"SetPloughDepth: Плуг не подключен/выбран. Текущее оборудование: {_activeImplementType}.");
                 return;
             }
-            // Можно разрешить установку параметров даже если операция не активна,
-            // но сами параметры будут применены только при активации.
             // if (!_isOperationActive)
             // {
             //     Logger.Instance.Debug(SourceFilePath, "SetPloughDepth: Плуг не выполняет операцию. Параметр будет применен при активации.");
             // }
-            _currentPloughDepth = Math.Max(0, depth); // Глубина не может быть отрицательной
+            _currentPloughDepth = Math.Max(0, depth); 
             Logger.Instance.Info(SourceFilePath, $"SetPloughDepth: Установлена глубина вспашки: {_currentPloughDepth:F2} м.");
         }
 
@@ -139,7 +136,6 @@ namespace Traktor.Implements
             _isOperationActive = true;
             Logger.Instance.Info(SourceFilePath, $"ActivateOperation: Операция с оборудованием ({_activeImplementType}) АКТИВИРОВАНА.");
             // Здесь могла бы быть реальная логика: команда на опускание плуга, включение сеялки/опрыскивателя.
-            // Например, в зависимости от _activeImplementType и установленных параметров:
             // if (_activeImplementType == ImplementType.Plough) Logger.Instance.Debug(SourceFilePath, $"...Плуг опущен на глубину {_currentPloughDepth:F2}м.");
         }
 
@@ -155,8 +151,6 @@ namespace Traktor.Implements
             }
             _isOperationActive = false;
             Logger.Instance.Info(SourceFilePath, $"DeactivateOperation: Операция с оборудованием ({_activeImplementType}) ДЕАКТИВИРОВАНА.");
-            // Сброс операционных параметров (глубины, нормы) при деактивации операции может быть не нужен,
-            // т.к. они могут понадобиться при следующей активации. Но это зависит от требований.
         }
 
         // --- Методы для получения текущего состояния ---

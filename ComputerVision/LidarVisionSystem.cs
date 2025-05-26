@@ -1,6 +1,6 @@
 using Traktor.Interfaces;
 using Traktor.DataModels;
-using Traktor.Core;   // Добавлено для Logger
+using Traktor.Core;   
 
 namespace Traktor.ComputerVision
 {
@@ -11,8 +11,8 @@ namespace Traktor.ComputerVision
     public class LidarVisionSystem : IComputerVisionSystem
     {
         private static readonly Random _random = new Random();
-        private bool _isSystemActive = true; // Внутренний флаг активности, если нужен.
-        private const string SourceFilePath = "ComputerVision/LidarVisionSystem.cs"; // Определяем константу
+        private bool _isSystemActive = true; // Внутренний флаг активности
+        private const string SourceFilePath = "ComputerVision/LidarVisionSystem.cs"; 
 
         /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="LidarVisionSystem"/>.
@@ -43,10 +43,6 @@ namespace Traktor.ComputerVision
                 double distance = 1.0 + _random.NextDouble() * 15.0; // Расстояние от 1 до 16 метров
                 double angle = _random.NextDouble() * 2 * Math.PI;   // Случайный угол (0 - 2PI)
 
-                // Очень упрощенный перевод полярных координат в декартовы смещения для широты/долготы
-                // Это неточно для реальных геокоординат, но для макета подойдет.
-                // Считаем, что Latitude ~ Y, Longitude ~ X
-                // И масштаб градусов примерно одинаковый для малых расстояний
                 const double metersToDegreesApproximation = 0.000009; // Очень грубое приближение: 1 метр ~ 0.000009 градуса
 
                 double offsetY = Math.Sin(angle) * distance * metersToDegreesApproximation;
@@ -78,11 +74,9 @@ namespace Traktor.ComputerVision
         {
             // LiDAR обычно не используется для детального анализа агрономических особенностей поля, таких как сорняки.
             Logger.Instance.Info(SourceFilePath, $"AnalyzeFieldFeatures (для трактора в {currentTractorPosition}): Метод не поддерживается системой LiDAR. Возвращен пустой список.");
-            return new List<FieldFeatureData>(); // LiDAR не анализирует такие особенности
+            return new List<FieldFeatureData>();
         }
 
-        // Если ControlUnit должен управлять активностью этого конкретного модуля,
-        // можно добавить методы, не входящие в интерфейс:
         /// <summary>
         /// Активирует систему LiDAR (внутренний флаг).
         /// </summary>

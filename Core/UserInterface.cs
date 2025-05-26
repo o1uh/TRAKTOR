@@ -1,4 +1,4 @@
-using System.Drawing; // Для Bitmap
+using System.Drawing; 
 using Traktor.DataModels;
 using Traktor.Implements;
 
@@ -53,8 +53,7 @@ namespace Traktor.Core
                     {
                         Console.Clear();
                     }
-                    // Для других команд при неработающем автопилоте тоже очистим,
-                    // чтобы их вывод был на чистом экране перед паузой.
+                    
                     else if (!_controlUnit.IsOperating)
                     {
                         Console.Clear();
@@ -62,7 +61,6 @@ namespace Traktor.Core
 
                     ProcessInput(input);
 
-                    // Устанавливаем флаг, если команда требует паузы для просмотра ее вывода
                     if (wasHelpCommand || (!_controlUnit.IsOperating && !string.IsNullOrWhiteSpace(input) && input != "exit"))
                     {
                         commandProcessedRequiresPause = true;
@@ -71,7 +69,7 @@ namespace Traktor.Core
                 else if (!_controlUnit.IsOperating)
                 {
                     System.Threading.Thread.Sleep(100);
-                    continue; // Пропускаем SimulateOneStep и возможную паузу ReadKey
+                    continue; 
                 }
 
 
@@ -79,10 +77,8 @@ namespace Traktor.Core
                 {
                     _controlUnit.SimulateOneStep();
                     System.Threading.Thread.Sleep(1000);
-                    // DisplayStatus() будет в начале следующей итерации
                 }
 
-                // Если команда требовала паузы, делаем ее здесь, ПОСЛЕ возможного SimulateOneStep (если CU не работал)
                 if (commandProcessedRequiresPause && _keepRunning)
                 {
                     Console.WriteLine("\nНажмите любую клавишу для продолжения...");
@@ -317,7 +313,6 @@ namespace Traktor.Core
         /// </summary>
         private void DisplayHelp()
         {
-            // Console.Clear() теперь управляется из цикла Run, когда commandWasHelp == true
             Console.WriteLine("\nДоступные команды:");
             Console.WriteLine("  start <широта> <долгота> [тип_оборуд] - Запустить автопилот к цели. Оборудование: plough, seeder, sprayer (опционально).");
             Console.WriteLine("                                      Пример: start 55.123 37.456 plough");

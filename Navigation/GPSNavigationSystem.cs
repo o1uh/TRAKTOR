@@ -1,6 +1,6 @@
 using Traktor.Interfaces;
 using Traktor.DataModels;
-using Traktor.Core;   // Добавлено для Logger
+using Traktor.Core;
 
 namespace Traktor.Navigation
 {
@@ -16,7 +16,7 @@ namespace Traktor.Navigation
         private static readonly Random _random = new Random(); // Один экземпляр Random для всего класса
 
         private const double GPS_NOISE_MAGNITUDE = 0.000005; // Небольшой шум для имитации неточности GPS
-        private const string SourceFilePath = "Navigation/GPSNavigationSystem.cs"; // Определяем константу
+        private const string SourceFilePath = "Navigation/GPSNavigationSystem.cs";
 
         /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="GPSNavigationSystem"/>.
@@ -33,17 +33,14 @@ namespace Traktor.Navigation
         public Coordinates GetPosition()
         {
             string activeStatus = _isActive ? "АКТИВНА" : "НЕ АКТИВНА";
-            // Логируем только если что-то важное (например, система не активна, но пытаются получить позицию)
-            // или для детальной отладки. Пока оставим основной лог.
-            // Logger.Instance.Debug(SourceFilePath, $"GetPosition вызван. Система {activeStatus}."); // Закомментировано, чтобы не спамить
+            // Logger.Instance.Debug(SourceFilePath, $"GetPosition вызван. Система {activeStatus}."); 
 
             // Имитация небольшого шума/погрешности GPS
             Coordinates reportedPosition = new Coordinates(
                 _currentSimulatedPosition.Latitude + (_random.NextDouble() - 0.5) * GPS_NOISE_MAGNITUDE,
                 _currentSimulatedPosition.Longitude + (_random.NextDouble() - 0.5) * GPS_NOISE_MAGNITUDE
             );
-            // Следующий лог может спамить, если GetPosition вызывается часто. Оставим его закомментированным для продакшена.
-            // Logger.Instance.Debug(SourceFilePath, $"GetPosition. Симулированная: {_currentSimulatedPosition}, Возвращаемая с шумом: {reportedPosition}"); // Закомментировано, чтобы не спамить
+            // Logger.Instance.Debug(SourceFilePath, $"GetPosition. Симулированная: {_currentSimulatedPosition}, Возвращаемая с шумом: {reportedPosition}"); 
             return reportedPosition;
         }
 
@@ -56,11 +53,11 @@ namespace Traktor.Navigation
                 return null; // Или пустой список: new List<Coordinates>();
             }
 
-            Coordinates startPosition = this.GetPosition(); // Получаем "реальную" позицию с шумом
+            Coordinates startPosition = this.GetPosition();
             Logger.Instance.Info(SourceFilePath, $"CalculateRoute: Расчет маршрута от {startPosition} до {targetPosition}. Промежуточных точек на сегмент: {precisionPoints}. Границы поля: {(boundaries == null ? "не заданы" : "заданы")}.");
 
             List<Coordinates> route = new List<Coordinates>();
-            route.Add(startPosition); // Начальная точка - это "текущая позиция"
+            route.Add(startPosition);
 
             // Простая линейная интерполяция для маршрута
             // precisionPoints - это количество ДОПОЛНИТЕЛЬНЫХ точек МЕЖДУ началом и концом сегмента.
@@ -69,7 +66,7 @@ namespace Traktor.Navigation
             // Общее количество сегментов = precisionPoints + 1
             int totalSegments = Math.Max(1, precisionPoints + 1); // Хотя бы один сегмент
 
-            for (int i = 1; i < totalSegments; i++) // Добавляем precisionPoints точек
+            for (int i = 1; i < totalSegments; i++)
             {
                 double fraction = (double)i / totalSegments;
                 route.Add(new Coordinates(
@@ -79,11 +76,8 @@ namespace Traktor.Navigation
             }
             route.Add(targetPosition); // Конечная точка
 
-            // Здесь могла бы быть проверка на выход за boundaries, если они заданы.
-            // Для макета пока опускаем.
-
             Logger.Instance.Info(SourceFilePath, $"CalculateRoute: Маршрут рассчитан, {route.Count} точек.");
-            return route; // Возвращаем сам список, нет нужды в new List<Coordinates>(route) здесь
+            return route;
         }
 
         /// <inheritdoc/>
@@ -112,7 +106,7 @@ namespace Traktor.Navigation
             }
 
             // Имитация сложной логики корректировки
-            if (_random.Next(0, 5) == 0) // Увеличим шанс успешной корректировки
+            if (_random.Next(0, 5) == 0)
             {
                 Logger.Instance.Warning(SourceFilePath, $"AdjustRoute: Имитация: корректировка маршрута НЕВОЗМОЖНА.");
                 return null;
@@ -176,7 +170,7 @@ namespace Traktor.Navigation
         {
             Logger.Instance.Info(SourceFilePath, $"StartNavigation (с параметрами): Попытка активации системы GPS и расчета маршрута к {initialTargetPosition}.");
 
-            this.StartNavigation(); // Сначала пытаемся активировать систему (или проверяем, что она уже активна)
+            this.StartNavigation();
 
             if (!_isActive)
             {
@@ -184,8 +178,6 @@ namespace Traktor.Navigation
                 return null;
             }
 
-            // Если система активна, текущая симулированная позиция уже должна быть установлена через UpdateSimulatedPosition.
-            // Если нет, то _currentSimulatedPosition будет (0,0) или последнее известное значение.
             Logger.Instance.Info(SourceFilePath, $"StartNavigation (с параметрами): Система активна. Текущая позиция для расчета: {_currentSimulatedPosition}. Выполняется первоначальный расчет маршрута...");
 
             List<Coordinates> calculatedRoute = CalculateRoute(initialTargetPosition, initialBoundaries, initialPrecisionPoints);

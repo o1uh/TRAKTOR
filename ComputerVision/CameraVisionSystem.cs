@@ -1,7 +1,7 @@
 using Traktor.Interfaces;
 using Traktor.DataModels;
-using System.Drawing; // Для Bitmap
-using Traktor.Core;   // Добавлено для Logger
+using System.Drawing;
+using Traktor.Core;   
 
 namespace Traktor.ComputerVision
 {
@@ -14,7 +14,7 @@ namespace Traktor.ComputerVision
         private static readonly Random _random = new Random();
         private bool _isSystemActive = true;
         private readonly ISensors<Bitmap> _cameraSensor; // Зависимость от сенсора камеры
-        private const string SourceFilePath = "ComputerVision/CameraVisionSystem.cs"; // Определяем константу
+        private const string SourceFilePath = "ComputerVision/CameraVisionSystem.cs"; 
 
         /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="CameraVisionSystem"/>.
@@ -57,13 +57,12 @@ namespace Traktor.ComputerVision
             }
             finally
             {
-                currentFrame?.Dispose(); // Важно освобождать ресурсы Bitmap
+                currentFrame?.Dispose(); 
             }
 
             List<ObstacleData> detectedObstacles = new List<ObstacleData>();
+
             // Имитация обнаружения препятствий на основе "анализа" кадра
-            // Можно использовать currentFrame.Height/Width или даже попытаться извлечь imageCounter для влияния на рандом,
-            // но для простоты оставим как было, но сам факт получения кадра важен.
             if (_random.Next(0, 5) == 0)
             {
                 const double metersToDegreesApproximation = 0.000009;

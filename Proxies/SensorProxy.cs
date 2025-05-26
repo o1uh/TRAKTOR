@@ -1,6 +1,5 @@
-using Traktor.Interfaces; // Для ISensors<T>
-using Traktor.Core;       // Добавлено для Logger
-
+using Traktor.Interfaces; 
+using Traktor.Core;      
 namespace Traktor.Proxies
 {
     /// <summary>
@@ -45,16 +44,16 @@ namespace Traktor.Proxies
         {
             if (!_isSensorInitialized)
             {
-                lock (_lock) // Блокировка для предотвращения многократной инициализации в многопоточной среде
+                lock (_lock) 
                 {
-                    if (!_isSensorInitialized) // Двойная проверка на случай, если другой поток уже инициализировал
+                    if (!_isSensorInitialized) 
                     {
                         Logger.Instance.Debug(SourceFilePath, $"SensorProxy<{typeof(T).Name}>: Инициализация реального сенсора через фабрику...");
                         _realSensor = _sensorFactory();
                         if (_realSensor == null)
                         {
                             Logger.Instance.Fatal(SourceFilePath, $"SensorProxy<{typeof(T).Name}>: ОШИБКА! Фабрика сенсоров вернула null.");
-                            // Можно выбросить исключение, если это критично
+                            
                             throw new InvalidOperationException("Фабрика сенсоров не смогла создать экземпляр сенсора.");
                         }
                         _isSensorInitialized = true;
@@ -71,9 +70,7 @@ namespace Traktor.Proxies
 
             // Проверка, не истекло ли время кэша и есть ли валидные данные в кэше
             bool useCache = _cacheDuration > TimeSpan.Zero &&
-                            _cachedData != null && // Убедимся, что кэш не пустой (особенно для reference types)
-                                                   // Для value types (_cachedData is T defaultT && defaultT.Equals(_cachedData)) было бы сложнее,
-                                                   // поэтому DateTime.MinValue для _lastCacheUpdateTime - хороший индикатор "нет кэша"
+                            _cachedData != null && 
                             (DateTime.Now - _lastCacheUpdateTime) < _cacheDuration;
 
             if (useCache)
@@ -85,7 +82,7 @@ namespace Traktor.Proxies
             // Если кэш не используется или истек
             Logger.Instance.Debug(SourceFilePath, $"SensorProxy<{typeof(T).Name}>: GetData() - Кэш не используется или истек. Запрос данных от реального сенсора ({_realSensor.GetType().Name})...");
 
-            T newData = default(T); // Значение по умолчанию на случай ошибки
+            T newData = default(T);
             try
             {
                 newData = _realSensor.GetData();
@@ -96,9 +93,6 @@ namespace Traktor.Proxies
             catch (Exception ex)
             {
                 Logger.Instance.Error(SourceFilePath, $"SensorProxy<{typeof(T).Name}>: GetData() - ОШИБКА при получении данных от реального сенсора: {ex.Message}. Возвращаем default(T).", ex);
-                // Можно решить, что делать с кэшем в случае ошибки - сбрасывать или оставлять старый.
-                // Пока оставляем старый (если он был), или default(T) если его не было.
-                // Если хотим вернуть последнее удачное значение из кэша, даже если он "истек", но была ошибка:
                 // if (_cachedData != null) return _cachedData;
                 // else return default(T);
             }

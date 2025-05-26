@@ -1,4 +1,4 @@
-using System.Text; // Для StringBuilder
+using System.Text;
 
 namespace Traktor.Core
 {
@@ -38,13 +38,10 @@ namespace Traktor.Core
         /// </summary>
         private Logger()
         {
-            // Определяем путь к файлу лога. Например, в папке с исполняемым файлом.
-            // Имя файла может включать дату для ротации логов, но для простоты пока одно имя.
             string logDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
             Directory.CreateDirectory(logDirectory); // Убедимся, что директория существует
             _logFilePath = Path.Combine(logDirectory, $"TraktorApp_{DateTime.Now:yyyyMMdd_HHmmss_fff}.log");
 
-            // Запишем сообщение о старте логгера
             Log(LogLevel.Info, "Core/Logger.cs", "Логгер инициализирован. Начало сессии логирования.");
         }
 
@@ -64,7 +61,6 @@ namespace Traktor.Core
 
             try
             {
-                // Формируем строку лога
                 // Формат: [УРОВЕНЬ]-[ИмяФайлаИсточника]-[ГГГГ-ММ-ДД ЧЧ:мм:сс.fff]: Сообщение
                 //          (Если есть исключение, добавляем его детали)
                 StringBuilder logEntry = new StringBuilder();
@@ -90,7 +86,6 @@ namespace Traktor.Core
                     logEntry.AppendLine("-------------------------");
                 }
 
-                // Потокобезопасная запись в файл
                 lock (_lock)
                 {
                     File.AppendAllText(_logFilePath, logEntry.ToString() + Environment.NewLine);
@@ -107,7 +102,7 @@ namespace Traktor.Core
             }
         }
 
-        // Вспомогательные методы для удобства
+        // Вспомогательные методы
         public void Debug(string sourceFilePath, string message) => Log(LogLevel.Debug, sourceFilePath, message);
         public void Info(string sourceFilePath, string message) => Log(LogLevel.Info, sourceFilePath, message);
         public void Warning(string sourceFilePath, string message, Exception ex = null) => Log(LogLevel.Warning, sourceFilePath, message, ex);

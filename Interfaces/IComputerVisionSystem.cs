@@ -1,4 +1,4 @@
-using Traktor.DataModels;      // Для Coordinates, ObstacleData, FieldFeatureData
+using Traktor.DataModels;
 
 namespace Traktor.Interfaces
 {

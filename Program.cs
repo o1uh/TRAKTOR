@@ -28,7 +28,7 @@ namespace Traktor
 
                 var distanceSensor = new DistanceSensor();
                 ISensors<double> distanceSensorProxy = new SensorProxy<double>(
-                    () => distanceSensor, // Передаем уже созданный экземпляр (или можно () => new DistanceSensor())
+                    () => distanceSensor,
                     TimeSpan.FromMilliseconds(500) // Кэш на 0.5 секунды
                 );
 
@@ -51,8 +51,6 @@ namespace Traktor
                 INavigationSystem inertialNavigation = new InertialNavigationSystem();
                 // В реальном приложении мог бы быть NavigationProxy для переключения
                 // Пока ControlUnit будет использовать одну (например, GPS)
-                // Для демонстрации работы ИНС, ее нужно "выставить" перед использованием
-                // inertialNavigation.UpdateSimulatedPosition(new Coordinates(55.0, 37.0)); // Пример выставки ИНС
                 Logger.Instance.Info(SourceFilePath, "Системы навигации инициализированы.");
 
                 // 3. Инициализация систем компьютерного зрения и их прокси
@@ -89,7 +87,7 @@ namespace Traktor
                 var userInterface = new UserInterface(controlUnit);
                 Logger.Instance.Info(SourceFilePath, "UserInterface инициализирован. Запуск...");
 
-                userInterface.Run(); // Запускаем основной цикл UI
+                userInterface.Run();
 
             }
             catch (Exception ex)

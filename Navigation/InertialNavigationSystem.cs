@@ -1,6 +1,6 @@
 using Traktor.Interfaces;
 using Traktor.DataModels;
-using Traktor.Core;   // Добавлено для Logger
+using Traktor.Core;
 
 namespace Traktor.Navigation
 {
@@ -16,8 +16,8 @@ namespace Traktor.Navigation
         private bool _isInitializedAndActive = false; // Флаг, что система активна и была инициализирована начальной позицией
         private static readonly Random _random = new Random();
 
-        private const double DRIFT_RATE_PER_SECOND = 0.000001; // Условная скорость дрейфа (градусы в секунду)
-        private const string SourceFilePath = "Navigation/InertialNavigationSystem.cs"; // Определяем константу
+        private const double DRIFT_RATE_PER_SECOND = 0.000001; // Условная скорость дрейфа
+        private const string SourceFilePath = "Navigation/InertialNavigationSystem.cs"; 
 
         /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="InertialNavigationSystem"/>.
@@ -52,7 +52,6 @@ namespace Traktor.Navigation
                     _currentEstimatedPosition.Latitude + driftLatitude,
                     _currentEstimatedPosition.Longitude + driftLongitude
                 );
-                // Лог применения дрейфа может быть частым, используем Debug
                 Logger.Instance.Debug(SourceFilePath, $"GetPosition: Применен дрейф ({elapsedSeconds:F2}с). Новая оценка ИНС: {_currentEstimatedPosition}");
             }
             return _currentEstimatedPosition;
@@ -173,7 +172,7 @@ namespace Traktor.Navigation
         /// <inheritdoc/>
         public void StopNavigation()
         {
-            if (!_isInitializedAndActive) // Если система и так не была инициализирована и активна
+            if (!_isInitializedAndActive)
             {
                 Logger.Instance.Info(SourceFilePath, "StopNavigation: ИНС уже неактивна или не была инициализирована.");
                 return;

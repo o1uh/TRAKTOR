@@ -1,7 +1,6 @@
 using Traktor.Interfaces;
-using System.Drawing; // Для Bitmap, Graphics, Color, Font, SolidBrush
-using Traktor.Core;   // Добавлено для Logger
-
+using System.Drawing;
+using Traktor.Core;   
 namespace Traktor.Sensors
 {
     /// <summary>
@@ -12,15 +11,14 @@ namespace Traktor.Sensors
         private int _imageCounter = 0;
         private readonly int _defaultWidth = 640;
         private readonly int _defaultHeight = 480;
-        private static readonly Random _random = new Random(); // Для случайного цвета фона
-        private const string SourceFilePath = "Sensors/CameraSensor.cs"; // Определяем константу для пути файла
+        private static readonly Random _random = new Random(); 
+        private const string SourceFilePath = "Sensors/CameraSensor.cs"; 
 
         /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="CameraSensor"/>.
         /// </summary>
         public CameraSensor()
         {
-            // Используем Logger.Instance.Info для логирования инициализации
             Logger.Instance.Info(SourceFilePath, $"Датчик камеры (симуляция) инициализирован с разрешением {_defaultWidth}x{_defaultHeight}.");
         }
 
@@ -47,7 +45,6 @@ namespace Traktor.Sensors
                     g.DrawString(text, font, brush, 10, 10);
                 }
             }
-            // Используем Logger.Instance.Debug для логирования генерации Bitmap, т.к. это может быть частым событием
             Logger.Instance.Debug(SourceFilePath, $"Сгенерирован Bitmap {bmp.Width}x{bmp.Height}, Кадр #{_imageCounter}");
             return bmp;
         }

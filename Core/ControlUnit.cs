@@ -1,7 +1,7 @@
 ﻿using Traktor.Interfaces;
 using Traktor.DataModels;
 using Traktor.Implements;
-using System.Drawing; // Для ISensors<Bitmap>
+using System.Drawing; 
 
 namespace Traktor.Core
 {
@@ -70,11 +70,7 @@ namespace Traktor.Core
                 return;
             }
 
-            Logger.Instance.Info(SourceFilePath, $"StartOperation: Запуск работы автопилота. Цель: {initialTargetPosition}, Оборудование: {attachedImplement}.");
-
-            // Предполагается, что навигационная система была выставлена (UpdateSimulatedPosition) перед вызовом StartOperation,
-            // если это необходимо (особенно для ИНС).
-            // Пример: _navigationSystem.UpdateSimulatedPosition(new Coordinates(55.123, 37.456)); 
+            Logger.Instance.Info(SourceFilePath, $"StartOperation: Запуск работы автопилота. Цель: {initialTargetPosition}, Оборудование: {attachedImplement}."); 
 
             _currentRoute = _navigationSystem.StartNavigation(initialTargetPosition, fieldBoundaries);
 
@@ -124,7 +120,7 @@ namespace Traktor.Core
         {
             if (!_isOperating)
             {
-                // Logger.Instance.Debug(SourceFilePath, "StopOperation: Работа автопилота уже была остановлена."); // Можно убрать или сделать Debug
+                // Logger.Instance.Debug(SourceFilePath, "StopOperation: Работа автопилота уже была остановлена.");
                 return;
             }
             Logger.Instance.Info(SourceFilePath, "StopOperation: Остановка работы автопилота...");
@@ -214,10 +210,10 @@ namespace Traktor.Core
                 }
             }
 
-            // 4. Получение данных с других сенсоров (могут использоваться для решений или просто для отображения UI)
+            // 4. Получение данных с других сенсоров 
             double frontDistance = _distanceSensorProxy.GetData();
             SoilSensorData soilData = _soilSensorProxy.GetData();
-            // Bitmap cameraFrame = _cameraSensorProxy.GetData(); // Получаем кадр, если UI будет его отображать и утилизировать
+            Bitmap cameraFrame = _cameraSensorProxy.GetData(); // Условно, дабы показать, что компиляция проходит
 
             Logger.Instance.Debug(SourceFilePath, $"SimulateOneStep: Данные датчиков (для информации/UI): Расстояние={frontDistance:F2}м, Почва=[{soilData}]");
 
@@ -226,7 +222,7 @@ namespace Traktor.Core
             {
                 Logger.Instance.Warning(SourceFilePath, $"SimulateOneStep: КРИТИЧЕСКОЕ СБЛИЖЕНИЕ ({frontDistance:F2}м)! Требуются экстренные меры (в макете - остановка).");
                 StopOperation();
-                return; // Завершаем шаг после экстренной остановки
+                return; 
             }
 
             // Здесь могла бы быть логика, использующая soilData для адаптивного управления ImplementControlSystem,
@@ -262,7 +258,7 @@ namespace Traktor.Core
             return Math.Sqrt(dx * dx + dy * dy);
         }
 
-        // --- Публичные свойства и методы для доступа извне (например, UserInterface) ---
+        // --- Публичные свойства и методы для доступа извне ---
 
         /// <summary>
         /// Возвращает true, если автопилот в данный момент выполняет операцию.
