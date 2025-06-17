@@ -1,14 +1,15 @@
 ﻿using System.Drawing;
-using Traktor.Core;
-using Traktor.Sensors;
-using Traktor.Navigation;
+using Traktor.Adapters;
+using Traktor.Builders;
 using Traktor.ComputerVision;
+using Traktor.Core;
+using Traktor.DataModels;
+using Traktor.Decorators;
 using Traktor.Implements;
 using Traktor.Interfaces; 
-using Traktor.DataModels;
+using Traktor.Navigation;
 using Traktor.Proxies;
-using Traktor.Decorators;
-using Traktor.Adapters;
+using Traktor.Sensors;
 using Traktor.TaskComponents;
 
 namespace Traktor
@@ -24,18 +25,15 @@ namespace Traktor
             Logger.Instance.Info(SourceFilePath, $"Версия .NET: {Environment.Version}");
             Logger.Instance.Info(SourceFilePath, "==================================================");
 
-            // --- Демонстрация структурных паттернов (ЛР 05-06) ---
+            // --- Демонстрация паттерна Builder (ЛР 11) ---
             Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Начало демонстрации структурных паттернов (ЛР 05-06)");
+            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Builder (ЛР 11)");
             Logger.Instance.Info(SourceFilePath, "==================================================");
 
-            DemonstrateIteratorPattern();
-            DemonstrateDecoratorPattern();
-            DemonstrateAdapterPattern();
-            DemonstrateCompositePattern();
+            DemonstrateBuilderPattern();
 
             Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Конец демонстрации структурных паттернов (ЛР 05-06)");
+            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Builder (ЛР 11)");
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "\n");
 
@@ -97,62 +95,59 @@ namespace Traktor
             }
         }
 
-        private static void DemonstrateIteratorPattern()
+        private static void DemonstrateBuilderPattern()
         {
-            Logger.Instance.Info(SourceFilePath, "--- Начало демонстрации паттерна Iterator ---");
+            Logger.Instance.Info(SourceFilePath, "--- Начало демонстрации паттерна Builder (ЛР 11) ---");
             try
             {
-                var routePoints = new List<Coordinates>
-                {
-                    new Coordinates(55.123456, 37.123456),
-                    new Coordinates(55.223456, 37.223456),
-                    new Coordinates(55.323456, 37.323456)
-                };
-                Logger.Instance.Info(SourceFilePath, $"Iterator Demo: Создан список из {routePoints.Count} координат для маршрута.");
-                var tractorRoute = new Traktor.Navigation.TractorRoute(routePoints);
-                Logger.Instance.Info(SourceFilePath, "Iterator Demo: Начинаем итерацию по TractorRoute с помощью foreach...");
-                int pointIndex = 0;
-                foreach (var point in tractorRoute)
-                {
-                    pointIndex++;
-                    Logger.Instance.Info(SourceFilePath, $"Iterator Demo (Клиент): Получена точка #{pointIndex} из маршрута: {point}");
-                }
-                Logger.Instance.Info(SourceFilePath, $"Iterator Demo: Итерация по TractorRoute завершена. Всего обработано точек клиентом: {pointIndex}.");
-                Logger.Instance.Info(SourceFilePath, $"Iterator Demo: Проверка GetPointCount() у tractorRoute: {tractorRoute.GetPointCount()} точек.");
+                Logger.Instance.Info(SourceFilePath, "Builder Demo: --- Прямое использование Строителя ---");
+                ITractorConfigurationBuilder builder = new StandardTractorConfigurationBuilder();
+
+                Logger.Instance.Info(SourceFilePath, "Builder Demo: Собираем кастомную конфигурацию...");
+                TractorConfiguration customConfig = builder
+                    .SetBaseParameters("CustomTraktor X100", EngineType.Hybrid)
+                    .SetTransmission(TransmissionType.CVT)
+                    .SetHorsePower(300)
+                    .SetGPSModule(true)
+                    .Build();
+
+                Logger.Instance.Info(SourceFilePath, "Builder Demo: Кастомная конфигурация собрана:");
+                customConfig.DisplayConfiguration();
+
+                Logger.Instance.Info(SourceFilePath, "Builder Demo: --- Использование Директора ---");
+                TractorConfigurationDirector director = new TractorConfigurationDirector(builder);
+
+                Logger.Instance.Info(SourceFilePath, "Builder Demo: Директор собирает базовую конфигурацию...");
+                director.ConstructBasicTractor("TerraForce Basic");
+                TractorConfiguration basicConfig = builder.Build();
+                Logger.Instance.Info(SourceFilePath, "Builder Demo: Базовая конфигурация собрана директором:");
+                basicConfig.DisplayConfiguration();
+
+                Logger.Instance.Info(SourceFilePath, "Builder Demo: Директор собирает продвинутую конфигурацию...");
+                director.ConstructAdvancedTractor("AgroMaster Pro");
+                TractorConfiguration advancedConfig = builder.Build();
+                Logger.Instance.Info(SourceFilePath, "Builder Demo: Продвинутая конфигурация собрана директором:");
+                advancedConfig.DisplayConfiguration();
+
+                Logger.Instance.Info(SourceFilePath, "Builder Demo: Директор собирает электрическую конфигурацию...");
+                director.ConstructElectricTractor("EcoVolt E-200");
+                TractorConfiguration electricConfig = builder.Build();
+                Logger.Instance.Info(SourceFilePath, "Builder Demo: Электрическая конфигурация собрана директором:");
+                electricConfig.DisplayConfiguration();
+
+                Logger.Instance.Info(SourceFilePath, "Builder Demo: --- Повторное использование Строителя (после сброса) ---");
+                TractorConfiguration anotherCustomConfig = builder
+                    .SetBaseParameters("MiniAgro", EngineType.Electric)
+                    .SetHorsePower(50)
+                    .Build();
+                Logger.Instance.Info(SourceFilePath, "Builder Demo: Еще одна кастомная конфигурация собрана:");
+                anotherCustomConfig.DisplayConfiguration();
             }
             catch (Exception ex)
             {
-                Logger.Instance.Error(SourceFilePath, $"Iterator Demo: Ошибка при демонстрации Iterator: {ex.Message}", ex);
+                Logger.Instance.Error(SourceFilePath, $"Builder Demo: Ошибка при демонстрации Builder: {ex.Message}", ex);
             }
-            Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Iterator ---");
-            Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
-        }
-
-        private static void DemonstrateDecoratorPattern()
-        {
-            Logger.Instance.Info(SourceFilePath, "--- Начало демонстрации паттерна Decorator ---");
-            try
-            {
-                ISensors<double> realDistanceSensor = new Traktor.Sensors.DistanceSensor();
-                Logger.Instance.Info(SourceFilePath, $"Decorator Demo: Создан реальный сенсор: {realDistanceSensor.GetType().FullName}");
-                ISensors<double> loggedDistanceSensor = new Traktor.Decorators.LoggingSensorDecorator<double>(realDistanceSensor);
-                Logger.Instance.Info(SourceFilePath, "Decorator Demo: Вызываем GetData() у декорированного (залогированного) DistanceSensor...");
-                double distance = loggedDistanceSensor.GetData();
-                Logger.Instance.Info(SourceFilePath, $"Decorator Demo: Клиент получил данные от декорированного DistanceSensor: {distance:F2} м");
-
-                Logger.Instance.Info(SourceFilePath, "Decorator Demo: --- Демонстрация с SoilSensor ---");
-                ISensors<SoilSensorData> realSoilSensor = new Traktor.Sensors.SoilSensor();
-                Logger.Instance.Info(SourceFilePath, $"Decorator Demo: Создан реальный сенсор: {realSoilSensor.GetType().FullName}");
-                ISensors<SoilSensorData> loggedSoilSensor = new Traktor.Decorators.LoggingSensorDecorator<SoilSensorData>(realSoilSensor);
-                Logger.Instance.Info(SourceFilePath, "Decorator Demo: Вызываем GetData() у декорированного (залогированного) SoilSensor...");
-                SoilSensorData soilData = loggedSoilSensor.GetData();
-                Logger.Instance.Info(SourceFilePath, $"Decorator Demo: Клиент получил данные от декорированного SoilSensor: {soilData}");
-            }
-            catch (Exception ex)
-            {
-                Logger.Instance.Error(SourceFilePath, $"Decorator Demo: Ошибка при демонстрации Decorator: {ex.Message}", ex);
-            }
-            Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Decorator ---");
+            Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Builder (ЛР 11) ---");
             Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
         }
 
