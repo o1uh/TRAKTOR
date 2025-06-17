@@ -2,6 +2,7 @@
 using Traktor.DataModels;
 using Traktor.Implements;
 using System.Drawing; // Для ISensors<Bitmap>
+using Traktor.Interfaces;
 
 namespace Traktor.Core
 {
@@ -10,7 +11,7 @@ namespace Traktor.Core
     /// Координирует работу всех подсистем, принимает решения и управляет движением и операциями.
     /// Предоставляет данные для отображения в пользовательском интерфейсе.
     /// </summary>
-    public class ControlUnit
+    public class ControlUnit : IControlUnitCommands
     {
         private readonly INavigationSystem _navigationSystem;
         private readonly IComputerVisionSystem _computerVisionSystem;

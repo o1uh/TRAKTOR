@@ -11,6 +11,8 @@ using Traktor.Navigation;
 using Traktor.Proxies;
 using Traktor.Sensors;
 using Traktor.TaskComponents;
+using Traktor.Commands;
+using Traktor.Mocks;
 
 namespace Traktor
 {
@@ -25,15 +27,15 @@ namespace Traktor
             Logger.Instance.Info(SourceFilePath, $"Версия .NET: {Environment.Version}");
             Logger.Instance.Info(SourceFilePath, "==================================================");
 
-            // --- Демонстрация паттерна Builder (ЛР 11) ---
+            // --- Демонстрация паттерна Command---
             Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Builder (ЛР 11)");
+            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Command (ЛР 14-15)");
             Logger.Instance.Info(SourceFilePath, "==================================================");
 
-            DemonstrateBuilderPattern();
+            DemonstrateCommandPattern();
 
             Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Builder (ЛР 11)");
+            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Command (ЛР 14-15)");
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "\n");
 
@@ -219,6 +221,40 @@ namespace Traktor
                 Logger.Instance.Error(SourceFilePath, $"Composite Demo: Ошибка при демонстрации Composite: {ex.Message}", ex);
             }
             Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Composite ---");
+            Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
+        }
+        private static void DemonstrateCommandPattern()
+        {
+            Logger.Instance.Info(SourceFilePath, "--- Начало демонстрации паттерна Command ---");
+            try
+            {
+                // 1. Создаем Получателя (Receiver).
+                var mockReceiver = new Traktor.Mocks.MockControlUnit(); ; // Используем наш простой макет
+
+                // 2. Создаем Инициатора (Invoker)
+                var invoker = new Traktor.Core.CommandInvoker();
+
+                // 3. Создаем и выполняем команду Start
+                Logger.Instance.Info(SourceFilePath, "Command Demo: --- Демонстрация StartAutopilotCommand ---");
+                var startTarget = new Coordinates(50.0, 30.0);
+                var startImplement = ImplementType.Seeder;
+                ICommand startCommand = new Traktor.Commands.StartAutopilotCommand(mockReceiver, startTarget, startImplement);
+
+                invoker.SetCommand(startCommand);
+                invoker.ExecuteCommand();
+
+                // 4. Создаем и выполняем команду Stop
+                Logger.Instance.Info(SourceFilePath, "Command Demo: --- Демонстрация StopAutopilotCommand ---");
+                ICommand stopCommand = new Traktor.Commands.StopAutopilotCommand(mockReceiver);
+
+                invoker.SetCommand(stopCommand);
+                invoker.ExecuteCommand();
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.Error(SourceFilePath, $"Command Demo: Ошибка при демонстрации Command: {ex.Message}", ex);
+            }
+            Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Command ---");
             Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
         }
     }
