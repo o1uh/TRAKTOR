@@ -1,18 +1,21 @@
 ﻿using System.Drawing;
 using Traktor.Adapters;
 using Traktor.Builders;
+using Traktor.Commands;
 using Traktor.ComputerVision;
 using Traktor.Core;
 using Traktor.DataModels;
 using Traktor.Decorators;
+using Traktor.FieldElements;
 using Traktor.Implements;
 using Traktor.Interfaces; 
+using Traktor.Mocks;
 using Traktor.Navigation;
 using Traktor.Proxies;
 using Traktor.Sensors;
 using Traktor.TaskComponents;
-using Traktor.Commands;
-using Traktor.Mocks;
+using Traktor.Visitors;
+using Traktor.FieldElements;
 
 namespace Traktor
 {
@@ -27,7 +30,6 @@ namespace Traktor
             Logger.Instance.Info(SourceFilePath, $"Версия .NET: {Environment.Version}");
             Logger.Instance.Info(SourceFilePath, "==================================================");
 
-            // --- Демонстрация паттерна Command---
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Command (ЛР 14-15)");
             Logger.Instance.Info(SourceFilePath, "==================================================");
@@ -47,6 +49,17 @@ namespace Traktor
 
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Chain of Responsibility (ЛР 14-15)");
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "\n");
+
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Visitor (ЛР 14-15)");
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+
+            DemonstrateVisitorPattern();
+
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Visitor (ЛР 14-15)");
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "\n");
 
@@ -326,6 +339,48 @@ namespace Traktor
             }
             Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Chain of Responsibility ---");
             Logger.Instance.Info(SourceFilePath, "-------------------------------------------------------------");
+        }
+        private static void DemonstrateVisitorPattern()
+        {
+            Logger.Instance.Info(SourceFilePath, "--- Начало демонстрации паттерна Visitor ---");
+            try
+            {
+                // 1. Создаем структуру объектов (элементов поля)
+                List<IFieldElement> fieldStructure = new List<IFieldElement>
+                {
+                    new ObstacleElement("Большой камень", new Coordinates(55.1, 37.1)),
+                    new SoilPatchElement("Песчаная", 15.5),
+                    new ObstacleElement("Упавшее дерево", new Coordinates(55.12, 37.15)),
+                    new SoilPatchElement("Глинистая", 45.2),
+                    new ObstacleElement("Канава", new Coordinates(55.13, 37.11))
+                };
+                Logger.Instance.Info(SourceFilePath, $"Visitor Demo: Создана структура из {fieldStructure.Count} элементов поля.");
+
+                // 2. Создаем Посетителя
+                IVisitor reportVisitor = new FieldReportVisitor();
+                Logger.Instance.Info(SourceFilePath, $"Visitor Demo: Создан Visitor типа '{reportVisitor.GetType().Name}'.");
+
+                // 3. Заставляем Посетителя "пройтись" по всем элементам структуры
+                Logger.Instance.Info(SourceFilePath, "Visitor Demo: Запуск обхода элементов поля Посетителем...");
+                foreach (var element in fieldStructure)
+                {
+                    element.Accept(reportVisitor);
+                }
+                Logger.Instance.Info(SourceFilePath, "Visitor Demo: Обход элементов Посетителем завершен.");
+
+                // 4. (Опционально) Получаем результат работы посетителя, если он что-то накапливал
+                if (reportVisitor is FieldReportVisitor concreteReportVisitor) // Проверка типа для доступа к специфичному методу
+                {
+                    string report = concreteReportVisitor.GetGeneratedReport();
+                    Logger.Instance.Info(SourceFilePath, "Visitor Demo: Полный сгенерированный отчет (из StringBuilder Посетителя):\n" + report);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.Error(SourceFilePath, $"Visitor Demo: Ошибка при демонстрации Visitor: {ex.Message}", ex);
+            }
+            Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Visitor ---");
+            Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
         }
     }
 }
