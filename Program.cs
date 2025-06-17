@@ -39,6 +39,17 @@ namespace Traktor
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "\n");
 
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Chain of Responsibility (ЛР 14-15)");
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+
+            DemonstrateChainOfResponsibilityPattern();
+
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Chain of Responsibility (ЛР 14-15)");
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "\n");
+
             Logger.Instance.Info(SourceFilePath, "--- Начало основной логики приложения ---");
             try
             {
@@ -256,6 +267,65 @@ namespace Traktor
             }
             Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Command ---");
             Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
+        }
+        private static void DemonstrateChainOfResponsibilityPattern()
+        {
+            Logger.Instance.Info(SourceFilePath, "--- Начало демонстрации паттерна Chain of Responsibility ---");
+            try
+            {
+                // 1. Создаем Получателя (Receiver) для команд - наш MockControlUnit
+                // MockControlUnit находится в Traktor.Mocks, реализует IControlUnitCommands
+                IControlUnitCommands mockReceiver = new Traktor.Mocks.MockControlUnit();
+
+                // 2. Создаем обработчики
+                // Обработчики находятся в Traktor.Commands
+                ICommandHandler startHandler = new Traktor.Commands.StartCommandHandler();
+                ICommandHandler stopHandler = new Traktor.Commands.StopCommandHandler();
+                // Можно добавить UnknownCommandHandler в конец цепочки, если нужно обрабатывать нераспознанные команды
+                // ICommandHandler unknownHandler = new Traktor.Commands.UnknownCommandHandler(); 
+
+                // 3. Строим цепочку: start -> stop (-> unknown)
+                Logger.Instance.Info(SourceFilePath, "Chain Demo: Построение цепочки обработчиков: StartHandler -> StopHandler.");
+                startHandler.SetNext(stopHandler);
+                // stopHandler.SetNext(unknownHandler); // Если есть unknownHandler
+
+                // 4. Создаем Инициатора команд (если хотим выполнить полученные команды)
+                // CommandInvoker находится в Traktor.Core
+                var invoker = new Traktor.Core.CommandInvoker();
+
+                // 5. Тестовые строки ввода
+                string[] userInputs = {
+                    "start 51.0 31.0 plough",
+                    "do_something_else",
+                    "stop",
+                    "start 52", // Неверные аргументы для start
+                    "help" // Неизвестная команда для текущей цепочки
+                };
+
+                foreach (string input in userInputs)
+                {
+                    Logger.Instance.Info(SourceFilePath, $"Chain Demo: --- Обработка ввода: '{input}' ---");
+                    ICommand command = startHandler.HandleRequest(input, mockReceiver); // Отправляем запрос первому в цепочке
+
+                    if (command != null)
+                    {
+                        Logger.Instance.Info(SourceFilePath, $"Chain Demo: Цепочка вернула команду типа '{command.GetType().Name}'. Выполняем...");
+                        invoker.SetCommand(command);
+                        invoker.ExecuteCommand();
+                    }
+                    else
+                    {
+                        Logger.Instance.Warning(SourceFilePath, $"Chain Demo: Команда для ввода '{input}' не была создана/распознана цепочкой.");
+                    }
+                    Logger.Instance.Info(SourceFilePath, "--------------------------------------");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.Error(SourceFilePath, $"Chain Demo: Ошибка при демонстрации Chain of Responsibility: {ex.Message}", ex);
+            }
+            Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Chain of Responsibility ---");
+            Logger.Instance.Info(SourceFilePath, "-------------------------------------------------------------");
         }
     }
 }
