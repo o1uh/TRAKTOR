@@ -20,6 +20,7 @@ using Traktor.Observers;
 using Traktor.OperationExecutors;
 using Traktor.Operations;
 using Traktor.Proxies;
+using Traktor.ReportGenerators;
 using Traktor.Sensors;
 using Traktor.States;
 using Traktor.TaskComponents;
@@ -37,37 +38,14 @@ namespace Traktor
             Logger.Instance.Info(SourceFilePath, "Приложение автопилота трактора запускается...");
             Logger.Instance.Info(SourceFilePath, $"Версия .NET: {Environment.Version}");
             Logger.Instance.Info(SourceFilePath, "==================================================");
-
             Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Facade");
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-
-            DemonstrateFacadePattern();
-
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Facade");
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "\n");
-
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Bridge");
+            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Factory Method");
             Logger.Instance.Info(SourceFilePath, "==================================================");
 
-            DemonstrateBridgePattern();
+            DemonstrateFactoryMethodPattern();
 
             Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Bridge");
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "\n");
-
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Flyweight");
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-
-            DemonstrateFlyweightPattern(); 
-
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Flyweight");
+            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Factory Method");
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "\n");
 
@@ -655,6 +633,31 @@ namespace Traktor
                 Logger.Instance.Error(SourceFilePath, $"Flyweight Demo: Ошибка при демонстрации Flyweight: {ex.Message}", ex);
             }
             Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Flyweight ---");
+            Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
+        }
+
+        private static void DemonstrateFactoryMethodPattern()
+        {
+            Logger.Instance.Info(SourceFilePath, "--- Начало демонстрации паттерна Factory Method ---");
+            try
+            {
+                ReportGenerator[] generators = new ReportGenerator[]
+                {
+                    new SimpleTextReportGenerator(),
+                    new DetailedXmlReportGenerator()
+                };
+
+                foreach (var generator in generators)
+                {
+                    Logger.Instance.Info(SourceFilePath, $"\nFactoryMethod Demo: Используется генератор типа '{generator.GetType().Name}'.");
+                    generator.GenerateAndDisplayReport();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.Error(SourceFilePath, $"FactoryMethod Demo: Ошибка при демонстрации Factory Method: {ex.Message}", ex);
+            }
+            Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Factory Method ---");
             Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
         }
     }
