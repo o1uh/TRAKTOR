@@ -6,6 +6,7 @@ using Traktor.ComputerVision;
 using Traktor.Core;
 using Traktor.DataModels;
 using Traktor.Decorators;
+using Traktor.EquipmentFactories;
 using Traktor.Facades;
 using Traktor.FieldElements;
 using Traktor.FieldElements;
@@ -46,6 +47,17 @@ namespace Traktor
 
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Factory Method");
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "\n");
+
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Abstract Factory");
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+
+            DemonstrateAbstractFactoryPattern(); 
+
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Abstract Factory");
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "\n");
 
@@ -658,6 +670,46 @@ namespace Traktor
                 Logger.Instance.Error(SourceFilePath, $"FactoryMethod Demo: Ошибка при демонстрации Factory Method: {ex.Message}", ex);
             }
             Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Factory Method ---");
+            Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
+        }
+
+        private static void ClientCodeForAbstractFactory(IFieldEquipmentFactory factory)
+        {
+            string factoryType = factory.GetType().Name;
+            Logger.Instance.Info(SourceFilePath, $"ClientCode: Работа с фабрикой типа '{factoryType}'.");
+
+            ISoilAnalyzerProduct soilAnalyzer = factory.CreateSoilAnalyzer();
+            ITillageToolProduct tillageTool = factory.CreateTillageTool();
+
+            Logger.Instance.Info(SourceFilePath, $"ClientCode (фабрика '{factoryType}'): Созданы продукты - Анализатор: '{soilAnalyzer.GetAnalyzerType()}', Инструмент: '{tillageTool.GetToolType()}'.");
+
+            Logger.Instance.Info(SourceFilePath, $"ClientCode (фабрика '{factoryType}'): Использование анализатора...");
+            soilAnalyzer.AnalyzeSoil();
+
+            Logger.Instance.Info(SourceFilePath, $"ClientCode (фабрика '{factoryType}'): Использование инструмента...");
+            tillageTool.PrepareSoil();
+        }
+
+        private static void DemonstrateAbstractFactoryPattern()
+        {
+            Logger.Instance.Info(SourceFilePath, "--- Начало демонстрации паттерна Abstract Factory ---");
+            try
+            {
+                // 1. Используем фабрику для стандартных полей
+                Logger.Instance.Info(SourceFilePath, "\nAbstractFactory Demo: === Использование StandardFieldEquipmentFactory ===");
+                IFieldEquipmentFactory standardFactory = new StandardFieldEquipmentFactory();
+                ClientCodeForAbstractFactory(standardFactory);
+
+                // 2. Используем фабрику для каменистых полей
+                Logger.Instance.Info(SourceFilePath, "\nAbstractFactory Demo: === Использование RockyFieldEquipmentFactory ===");
+                IFieldEquipmentFactory rockyFactory = new RockyFieldEquipmentFactory();
+                ClientCodeForAbstractFactory(rockyFactory);
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.Error(SourceFilePath, $"AbstractFactory Demo: Ошибка при демонстрации Abstract Factory: {ex.Message}", ex);
+            }
+            Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Abstract Factory ---");
             Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
         }
     }
