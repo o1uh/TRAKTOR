@@ -14,6 +14,7 @@ using Traktor.MementoPattern;
 using Traktor.Mocks;
 using Traktor.Mocks;      
 using Traktor.Navigation;
+using Traktor.Observers;
 using Traktor.Proxies;
 using Traktor.Sensors;
 using Traktor.States;
@@ -52,6 +53,17 @@ namespace Traktor
 
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Memento");
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "\n");
+
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Observer");
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+
+            DemonstrateObserverPattern();
+
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Observer");
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "\n");
 
@@ -470,6 +482,55 @@ namespace Traktor
                 Logger.Instance.Error(SourceFilePath, $"Memento Demo: Ошибка при демонстрации Memento: {ex.Message}", ex);
             }
             Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Memento ---");
+            Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
+        }
+
+
+        private static void DemonstrateObserverPattern()
+        {
+            Logger.Instance.Info(SourceFilePath, "--- Начало демонстрации паттерна Observer ---");
+            try
+            {
+                // 1. Создаем Субъекта (MockControlUnit)
+                var subjectControlUnit = new MockControlUnit();
+
+                // 2. Создаем Наблюдателей
+                var observer1 = new StatusDisplayObserver("Дисплей_Панели_Приборов");
+                var observer2 = new StatusDisplayObserver("Удаленный_Монитор_Фермера");
+
+                // 3. Подписываем Наблюдателей на Субъекта
+                Logger.Instance.Info(SourceFilePath, "Observer Demo: Подписка наблюдателей на MockControlUnit...");
+                subjectControlUnit.Attach(observer1);
+                subjectControlUnit.Attach(observer2);
+
+                // 4. Выполняем действия с Субъектом, которые должны вызывать Notify()
+                Logger.Instance.Info(SourceFilePath, "Observer Demo: --- Действие 1: Запуск операций ---");
+                subjectControlUnit.RequestStart(new Coordinates(77, 88), ImplementType.Sprayer);
+
+                Logger.Instance.Info(SourceFilePath, "Observer Demo: --- Действие 2: Шаг симуляции ---");
+                subjectControlUnit.RequestSimulationStep();
+
+                // 5. Отписываем одного Наблюдателя
+                Logger.Instance.Info(SourceFilePath, "Observer Demo: Отписка наблюдателя 'Дисплей_Панели_Приборов'...");
+                subjectControlUnit.Detach(observer1);
+
+                // 6. Выполняем еще одно действие
+                Logger.Instance.Info(SourceFilePath, "Observer Demo: --- Действие 3: Остановка операций (после отписки observer1) ---");
+                subjectControlUnit.RequestStop();
+
+                // 7. Попытка отписать несуществующего или уже отписанного (для демонстрации логики Detach)
+                Logger.Instance.Info(SourceFilePath, "Observer Demo: Попытка отписать 'Дисплей_Панели_Приборов' еще раз...");
+                subjectControlUnit.Detach(observer1);
+                var observer3 = new StatusDisplayObserver("Временный_Наблюдатель");
+                Logger.Instance.Info(SourceFilePath, "Observer Demo: Попытка отписать 'Временный_Наблюдатель' (который не был подписан)...");
+                subjectControlUnit.Detach(observer3);
+
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.Error(SourceFilePath, $"Observer Demo: Ошибка при демонстрации Observer: {ex.Message}", ex);
+            }
+            Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Observer ---");
             Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
         }
     }
