@@ -20,12 +20,14 @@ using Traktor.Navigation;
 using Traktor.Observers;
 using Traktor.OperationExecutors;
 using Traktor.Operations;
+using Traktor.Prototypes;
 using Traktor.Proxies;
 using Traktor.ReportGenerators;
 using Traktor.Sensors;
 using Traktor.States;
 using Traktor.TaskComponents;
 using Traktor.Visitors;
+using Traktor.Prototypes;
 
 namespace Traktor
 {
@@ -58,6 +60,17 @@ namespace Traktor
 
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Abstract Factory");
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "\n");
+
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Prototype");
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+
+            DemonstratePrototypePattern();
+
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Prototype");
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "\n");
 
@@ -710,6 +723,54 @@ namespace Traktor
                 Logger.Instance.Error(SourceFilePath, $"AbstractFactory Demo: Ошибка при демонстрации Abstract Factory: {ex.Message}", ex);
             }
             Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Abstract Factory ---");
+            Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
+        }
+
+        private static void DemonstratePrototypePattern()
+        {
+            Logger.Instance.Info(SourceFilePath, "--- Начало демонстрации паттерна Prototype ---");
+            try
+            {
+                // 1. Создаем исходный объект-прототип
+                var originalOrder = new FieldPloughingOrder(
+                    orderId: "ORD-001",
+                    fieldName: "Большое Западное Поле",
+                    scheduledDate: new DateTime(2023, 11, 15),
+                    ploughingDepth: 0.25
+                );
+                Logger.Instance.Info(SourceFilePath, "Prototype Demo: Создан оригинальный заказ (прототип):");
+                originalOrder.DisplayOrderDetails(SourceFilePath);
+
+                // 2. Клонируем прототип
+                Logger.Instance.Info(SourceFilePath, "Prototype Demo: Клонирование оригинального заказа...");
+                FieldPloughingOrder clonedOrder = (FieldPloughingOrder)originalOrder.Clone();
+
+                Logger.Instance.Info(SourceFilePath, "Prototype Demo: Создан клон заказа:");
+                clonedOrder.DisplayOrderDetails(SourceFilePath);
+
+                // 3. Модифицируем клон, чтобы показать их независимость (если ID не меняется при клонировании)
+                Logger.Instance.Info(SourceFilePath, "Prototype Demo: Модификация клонированного заказа...");
+                clonedOrder.OrderId = "ORD-002-CLONE";
+                clonedOrder.FieldName = "Малое Восточное Поле (клон)";
+                clonedOrder.ScheduledDate = new DateTime(2023, 11, 20);
+                clonedOrder.PloughingDepth = 0.30;
+
+                Logger.Instance.Info(SourceFilePath, "Prototype Demo: Модифицированный клон:");
+                clonedOrder.DisplayOrderDetails(SourceFilePath);
+
+                Logger.Instance.Info(SourceFilePath, "Prototype Demo: Оригинальный заказ (должен остаться неизменным):");
+                originalOrder.DisplayOrderDetails(SourceFilePath);
+
+                // 4. Проверка ссылок (для демонстрации, что это разные объекты, если MemberwiseClone сработал)
+                bool areSameReference = Object.ReferenceEquals(originalOrder, clonedOrder);
+                Logger.Instance.Info(SourceFilePath, $"Prototype Demo: Оригинал и клон ссылаются на один и тот же объект в памяти: {areSameReference}");
+
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.Error(SourceFilePath, $"Prototype Demo: Ошибка при демонстрации Prototype: {ex.Message}", ex);
+            }
+            Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Prototype ---");
             Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
         }
     }
