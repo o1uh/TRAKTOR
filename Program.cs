@@ -20,6 +20,7 @@ using Traktor.Sensors;
 using Traktor.States;
 using Traktor.TaskComponents;
 using Traktor.Visitors;
+using Traktor.Facades;
 
 namespace Traktor
 {
@@ -35,35 +36,13 @@ namespace Traktor
             Logger.Instance.Info(SourceFilePath, "==================================================");
 
             Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна State");
+            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Facade");
             Logger.Instance.Info(SourceFilePath, "==================================================");
 
-            DemonstrateStatePattern(); 
+            DemonstrateFacadePattern();
 
             Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна State");
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "\n");
-
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Memento");
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-
-            DemonstrateMementoPattern();
-
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Memento");
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "\n");
-
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Observer");
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-
-            DemonstrateObserverPattern();
-
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Observer");
+            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Facade");
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "\n");
 
@@ -531,6 +510,39 @@ namespace Traktor
                 Logger.Instance.Error(SourceFilePath, $"Observer Demo: Ошибка при демонстрации Observer: {ex.Message}", ex);
             }
             Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Observer ---");
+            Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
+        }
+
+        private static void DemonstrateFacadePattern()
+        {
+            Logger.Instance.Info(SourceFilePath, "--- Начало демонстрации паттерна Facade ---");
+            try
+            {
+                // 1. Создаем "сложную" подсистему (наш MockControlUnit)
+                var mockControlUnit = new MockControlUnit();
+                Logger.Instance.Info(SourceFilePath, "Facade Demo: MockControlUnit (подсистема) создан.");
+
+                // 2. Создаем Фасад, передавая ему подсистему
+                var facade = new TractorAutopilotFacade(mockControlUnit);
+                Logger.Instance.Info(SourceFilePath, "Facade Demo: TractorAutopilotFacade создан.");
+
+                // 3. Используем упрощенные методы Фасада
+                Logger.Instance.Info(SourceFilePath, "Facade Demo: --- Вызов StartFullFieldOperation через Фасад ---");
+                facade.StartFullFieldOperation("Поле_Номер_1", 55.75, 37.61, ImplementType.Seeder);
+
+                Logger.Instance.Info(SourceFilePath, "Facade Demo: --- Вызов GetQuickStatus через Фасад ---");
+                string status = facade.GetQuickStatus();
+                Logger.Instance.Info(SourceFilePath, $"Facade Demo: Быстрый статус от Фасада: '{status}'");
+
+
+                Logger.Instance.Info(SourceFilePath, "Facade Demo: --- Вызов StopAllOperations через Фасад ---");
+                facade.StopAllOperations();
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.Error(SourceFilePath, $"Facade Demo: Ошибка при демонстрации Facade: {ex.Message}", ex);
+            }
+            Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Facade ---");
             Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
         }
     }
