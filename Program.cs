@@ -7,17 +7,18 @@ using Traktor.Core;
 using Traktor.DataModels;
 using Traktor.Decorators;
 using Traktor.FieldElements;
+using Traktor.FieldElements;
 using Traktor.Implements;
 using Traktor.Interfaces; 
+using Traktor.MementoPattern;
 using Traktor.Mocks;
+using Traktor.Mocks;      
 using Traktor.Navigation;
 using Traktor.Proxies;
 using Traktor.Sensors;
+using Traktor.States;
 using Traktor.TaskComponents;
 using Traktor.Visitors;
-using Traktor.FieldElements;
-using Traktor.Mocks;      
-using Traktor.States;
 
 namespace Traktor
 {
@@ -36,10 +37,21 @@ namespace Traktor
             Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна State");
             Logger.Instance.Info(SourceFilePath, "==================================================");
 
-            DemonstrateStatePattern(); // <--- ВЫЗОВ НОВОГО МЕТОДА
+            DemonstrateStatePattern(); 
 
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна State");
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "\n");
+
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Memento");
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+
+            DemonstrateMementoPattern();
+
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Memento");
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "\n");
 
@@ -401,6 +413,63 @@ namespace Traktor
                 Logger.Instance.Error(SourceFilePath, $"State Demo: Ошибка при демонстрации State: {ex.Message}", ex);
             }
             Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна State ---");
+            Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
+        }
+
+        private static void DemonstrateMementoPattern()
+        {
+            Logger.Instance.Info(SourceFilePath, "--- Начало демонстрации паттерна Memento ---");
+            try
+            {
+                // 1. Создаем Originator (MockControlUnit) и Caretaker (History)
+                var originator = new MockControlUnit();
+                var history = new History();
+
+                Logger.Instance.Info(SourceFilePath, $"Memento Demo: Начальное состояние Originator. LastOperation: '{originator.LastOperationPerformed}'.");
+
+                // 2. Выполняем какие-то действия и сохраняем состояние
+                Logger.Instance.Info(SourceFilePath, "Memento Demo: Выполняем StartOperation...");
+                originator.RequestStart(new Coordinates(1, 1), ImplementType.Plough, null);
+                Logger.Instance.Info(SourceFilePath, $"Memento Demo: Состояние Originator после Start. LastOperation: '{originator.LastOperationPerformed}'.");
+
+                Logger.Instance.Info(SourceFilePath, "Memento Demo: Сохраняем текущее состояние в History...");
+                history.PushMemento(originator.CreateMemento());
+
+                // 3. Выполняем еще действия, изменяющие состояние
+                Logger.Instance.Info(SourceFilePath, "Memento Demo: Выполняем SimulationStep...");
+                originator.RequestSimulationStep();
+                Logger.Instance.Info(SourceFilePath, $"Memento Demo: Состояние Originator после SimulationStep. LastOperation: '{originator.LastOperationPerformed}'.");
+
+                Logger.Instance.Info(SourceFilePath, "Memento Demo: Выполняем StopOperation...");
+                originator.RequestStop();
+                Logger.Instance.Info(SourceFilePath, $"Memento Demo: Состояние Originator после Stop. LastOperation: '{originator.LastOperationPerformed}'.");
+
+                // 4. Восстанавливаем предыдущее сохраненное состояние
+                Logger.Instance.Info(SourceFilePath, "Memento Demo: Восстанавливаем предыдущее состояние из History...");
+                object memento = history.PopMemento();
+                if (memento != null)
+                {
+                    originator.RestoreMemento(memento);
+                    Logger.Instance.Info(SourceFilePath, $"Memento Demo: Состояние Originator ПОСЛЕ ВОССТАНОВЛЕНИЯ. LastOperation: '{originator.LastOperationPerformed}'.");
+                }
+                else
+                {
+                    Logger.Instance.Warning(SourceFilePath, "Memento Demo: Не удалось получить Memento из History для восстановления.");
+                }
+
+                // 5. Попытка восстановить еще раз (стек должен быть пуст)
+                Logger.Instance.Info(SourceFilePath, "Memento Demo: Попытка восстановить еще раз (History должна быть пуста)...");
+                object ещеОдинMemento = history.PopMemento();
+                if (ещеОдинMemento == null)
+                {
+                    Logger.Instance.Info(SourceFilePath, "Memento Demo: History пуста, как и ожидалось.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.Error(SourceFilePath, $"Memento Demo: Ошибка при демонстрации Memento: {ex.Message}", ex);
+            }
+            Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Memento ---");
             Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
         }
     }

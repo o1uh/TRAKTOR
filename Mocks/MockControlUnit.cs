@@ -10,12 +10,58 @@ namespace Traktor.Mocks
     {
         private const string SourceFilePath = "Mocks/MockControlUnit.cs";
         private IControlUnitState _currentState;
+        public string LastOperationPerformed { get; private set; }
 
         public MockControlUnit()
         {
-            _currentState = new StoppedControlUnitState(); 
-            Logger.Instance.Info(SourceFilePath, $"MockControlUnit создан. Начальное состояние: '{_currentState.GetStateName()}'.");
+            _currentState = new StoppedControlUnitState();
+            LastOperationPerformed = "None";
+            Logger.Instance.Info(SourceFilePath, $"MockControlUnit создан. Начальное состояние: '{_currentState.GetStateName()}', LastOperation: '{LastOperationPerformed}'.");
         }
+        // --- Реализация Memento ---
+        /// <summary>
+        /// Внутренний класс Memento, хранящий состояние MockControlUnit.
+        /// </summary>
+        private class Memento
+        {
+            public IControlUnitState State { get; }
+            public string LastOperation { get; }
+
+            public Memento(IControlUnitState state, string lastOperation)
+            {
+                State = state;
+                LastOperation = lastOperation;
+            }
+        }
+
+        /// <summary>
+        /// Создает снимок текущего состояния.
+        /// </summary>
+        /// <returns>Объект Memento.</returns>
+        public object CreateMemento()
+        {
+            Logger.Instance.Info(SourceFilePath, $"MockControlUnit: Создание Memento. Текущее состояние: '{_currentState.GetStateName()}', LastOperation: '{LastOperationPerformed}'.");
+            return new Memento(_currentState, LastOperationPerformed);
+        }
+
+        /// <summary>
+        /// Восстанавливает состояние из снимка.
+        /// </summary>
+        /// <param name="mementoObject">Объект Memento, ранее созданный CreateMemento().</param>
+        public void RestoreMemento(object mementoObject)
+        {
+            if (mementoObject is Memento memento)
+            {
+                _currentState = memento.State;
+                LastOperationPerformed = memento.LastOperation;
+                Logger.Instance.Info(SourceFilePath, $"MockControlUnit: Состояние восстановлено из Memento. Новое состояние: '{_currentState.GetStateName()}', LastOperation: '{LastOperationPerformed}'.");
+            }
+            else
+            {
+                Logger.Instance.Warning(SourceFilePath, "MockControlUnit: RestoreMemento получил неверный тип объекта Memento.");
+            }
+        }
+
 
         // --- Реализация IControlUnitStateContext ---
         public void SetState(IControlUnitState newState)

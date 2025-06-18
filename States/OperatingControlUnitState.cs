@@ -1,4 +1,3 @@
-// Τΰιλ: States/OperatingControlUnitState.cs
 using Traktor.Interfaces;
 using Traktor.Core;
 using Traktor.DataModels;
