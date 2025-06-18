@@ -28,6 +28,7 @@ using Traktor.States;
 using Traktor.TaskComponents;
 using Traktor.Visitors;
 using Traktor.Prototypes;
+using Traktor.ObjectPoolPattern;
 
 namespace Traktor
 {
@@ -71,6 +72,17 @@ namespace Traktor
 
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Prototype");
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "\n");
+
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Object Pool");
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+
+            DemonstrateObjectPoolPattern();
+
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Object Pool");
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "\n");
 
@@ -771,6 +783,88 @@ namespace Traktor
                 Logger.Instance.Error(SourceFilePath, $"Prototype Demo: Ошибка при демонстрации Prototype: {ex.Message}", ex);
             }
             Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Prototype ---");
+            Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
+        }
+
+        private static void DemonstrateObjectPoolPattern()
+        {
+            Logger.Instance.Info(SourceFilePath, "--- Начало демонстрации паттерна Object Pool ---");
+            try
+            {
+                // 1. Создаем пул с начальным размером 2 и максимальным 3
+                var processorPool = new SensorDataProcessorPool(initialSize: 2, maxSize: 3);
+                Logger.Instance.Info(SourceFilePath, $"ObjectPool Demo: Пул создан. Доступно: {processorPool.GetAvailableCount()}, Используется: {processorPool.GetInUseCount()}.");
+
+                // 2. Запрашиваем и используем несколько процессоров
+                Logger.Instance.Info(SourceFilePath, "\nObjectPool Demo: --- Запрос первого процессора ---");
+                SensorDataProcessor p1 = processorPool.AcquireProcessor();
+                if (p1 != null)
+                {
+                    p1.Process("Данные от GPS");
+                    Logger.Instance.Info(SourceFilePath, $"ObjectPool Demo: Статус пула. Доступно: {processorPool.GetAvailableCount()}, Используется: {processorPool.GetInUseCount()}.");
+                }
+
+                Logger.Instance.Info(SourceFilePath, "\nObjectPool Demo: --- Запрос второго процессора ---");
+                SensorDataProcessor p2 = processorPool.AcquireProcessor();
+                if (p2 != null)
+                {
+                    p2.Process("Данные от LiDAR");
+                    Logger.Instance.Info(SourceFilePath, $"ObjectPool Demo: Статус пула. Доступно: {processorPool.GetAvailableCount()}, Используется: {processorPool.GetInUseCount()}.");
+                }
+
+                // 3. Возвращаем один процессор в пул
+                Logger.Instance.Info(SourceFilePath, "\nObjectPool Demo: --- Возврат первого процессора (p1) ---");
+                if (p1 != null)
+                {
+                    processorPool.ReleaseProcessor(p1);
+                    Logger.Instance.Info(SourceFilePath, $"ObjectPool Demo: Статус пула. Доступно: {processorPool.GetAvailableCount()}, Используется: {processorPool.GetInUseCount()}.");
+                }
+
+                // 4. Запрашиваем третий процессор (должен быть p1, если он был возвращен, или новый, если пул создает до maxSize)
+                Logger.Instance.Info(SourceFilePath, "\nObjectPool Demo: --- Запрос третьего процессора ---");
+                SensorDataProcessor p3 = processorPool.AcquireProcessor();
+                if (p3 != null)
+                {
+                    p3.Process("Данные от камеры");
+                    Logger.Instance.Info(SourceFilePath, $"ObjectPool Demo: Статус пула. Доступно: {processorPool.GetAvailableCount()}, Используется: {processorPool.GetInUseCount()}.");
+                    if (p1 != null && Object.ReferenceEquals(p1, p3))
+                    {
+                        Logger.Instance.Info(SourceFilePath, $"ObjectPool Demo: Процессор p3 (ID: {p3.Id}) - это переиспользованный p1 (ID: {p1.Id}).");
+                    }
+                }
+
+                // 5. Запрашиваем четвертый процессор (пул создаст новый, т.к. maxSize=3, а занято 2: p2, p3)
+                Logger.Instance.Info(SourceFilePath, "\nObjectPool Demo: --- Запрос четвертого процессора ---");
+                SensorDataProcessor p4 = processorPool.AcquireProcessor();
+                if (p4 != null)
+                {
+                    p4.Process("Данные от датчика почвы");
+                    Logger.Instance.Info(SourceFilePath, $"ObjectPool Demo: Статус пула. Доступно: {processorPool.GetAvailableCount()}, Используется: {processorPool.GetInUseCount()}. (p2,p3,p4 заняты)");
+                }
+
+                // 6. Запрашиваем пятый процессор (пул должен вернуть null, т.к. maxSize=3 и все заняты)
+                Logger.Instance.Info(SourceFilePath, "\nObjectPool Demo: --- Запрос пятого процессора (ожидаем null) ---");
+                SensorDataProcessor p5 = processorPool.AcquireProcessor();
+                if (p5 == null)
+                {
+                    Logger.Instance.Info(SourceFilePath, "ObjectPool Demo: Пятый процессор не может быть выдан, пул достиг максимального размера и все объекты заняты (как и ожидалось).");
+                }
+                Logger.Instance.Info(SourceFilePath, $"ObjectPool Demo: Статус пула. Доступно: {processorPool.GetAvailableCount()}, Используется: {processorPool.GetInUseCount()}.");
+
+
+                // 7. Возвращаем все используемые процессоры
+                Logger.Instance.Info(SourceFilePath, "\nObjectPool Demo: --- Возврат всех используемых процессоров ---");
+                if (p2 != null) processorPool.ReleaseProcessor(p2);
+                if (p3 != null) processorPool.ReleaseProcessor(p3);
+                if (p4 != null) processorPool.ReleaseProcessor(p4);
+                Logger.Instance.Info(SourceFilePath, $"ObjectPool Demo: Статус пула после возврата. Доступно: {processorPool.GetAvailableCount()}, Используется: {processorPool.GetInUseCount()}.");
+
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.Error(SourceFilePath, $"ObjectPool Demo: Ошибка при демонстрации Object Pool: {ex.Message}", ex);
+            }
+            Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Object Pool ---");
             Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
         }
     }
