@@ -21,6 +21,8 @@ using Traktor.States;
 using Traktor.TaskComponents;
 using Traktor.Visitors;
 using Traktor.Facades;
+using Traktor.OperationExecutors;
+using Traktor.Operations;
 
 namespace Traktor
 {
@@ -43,6 +45,17 @@ namespace Traktor
 
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Facade");
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "\n");
+
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Bridge");
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+
+            DemonstrateBridgePattern();
+
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Bridge");
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "\n");
 
@@ -543,6 +556,45 @@ namespace Traktor
                 Logger.Instance.Error(SourceFilePath, $"Facade Demo: Ошибка при демонстрации Facade: {ex.Message}", ex);
             }
             Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Facade ---");
+            Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
+        }
+
+        private static void DemonstrateBridgePattern()
+        {
+            Logger.Instance.Info(SourceFilePath, "--- Начало демонстрации паттерна Bridge ---");
+            try
+            {
+                // 1. Создаем конкретных Исполнителей (Implementors)
+                IOperationExecutor detailedExecutor = new DetailedSimulationExecutor();
+                IOperationExecutor fastExecutor = new FastSimulationExecutor();
+                Logger.Instance.Info(SourceFilePath, "Bridge Demo: Созданы исполнители (Detailed и Fast).");
+
+                // 2. Демонстрация: Подготовка почвы с детальной симуляцией
+                Logger.Instance.Info(SourceFilePath, "\nBridge Demo: === Подготовка почвы (Детальная симуляция) ===");
+                TractorOperationBase soilPrepDetailed = new SoilPreparationOperation(detailedExecutor);
+                soilPrepDetailed.ExecuteOperation();
+
+                // 3. Демонстрация: Подготовка почвы с быстрой симуляцией
+                Logger.Instance.Info(SourceFilePath, "\nBridge Demo: === Подготовка почвы (Быстрая симуляция) ===");
+                TractorOperationBase soilPrepFast = new SoilPreparationOperation(fastExecutor);
+                soilPrepFast.ExecuteOperation();
+
+                // 4. Демонстрация: Борьба с вредителями с детальной симуляцией
+                Logger.Instance.Info(SourceFilePath, "\nBridge Demo: === Борьба с вредителями (Детальная симуляция) ===");
+                TractorOperationBase pestControlDetailed = new PestControlOperation(detailedExecutor);
+                pestControlDetailed.ExecuteOperation();
+
+                // 5. Демонстрация: Борьба с вредителями с быстрой симуляцией
+                Logger.Instance.Info(SourceFilePath, "\nBridge Demo: === Борьба с вредителями (Быстрая симуляция) ===");
+                TractorOperationBase pestControlFast = new PestControlOperation(fastExecutor);
+                pestControlFast.ExecuteOperation();
+
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.Error(SourceFilePath, $"Bridge Demo: Ошибка при демонстрации Bridge: {ex.Message}", ex);
+            }
+            Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Bridge ---");
             Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
         }
     }
