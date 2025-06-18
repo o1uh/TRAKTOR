@@ -16,6 +16,8 @@ using Traktor.Sensors;
 using Traktor.TaskComponents;
 using Traktor.Visitors;
 using Traktor.FieldElements;
+using Traktor.Mocks;      
+using Traktor.States;
 
 namespace Traktor
 {
@@ -31,35 +33,13 @@ namespace Traktor
             Logger.Instance.Info(SourceFilePath, "==================================================");
 
             Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Command (ЛР 14-15)");
+            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна State");
             Logger.Instance.Info(SourceFilePath, "==================================================");
 
-            DemonstrateCommandPattern();
+            DemonstrateStatePattern(); // <--- ВЫЗОВ НОВОГО МЕТОДА
 
             Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Command (ЛР 14-15)");
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "\n");
-
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Chain of Responsibility (ЛР 14-15)");
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-
-            DemonstrateChainOfResponsibilityPattern();
-
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Chain of Responsibility (ЛР 14-15)");
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "\n");
-
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Visitor (ЛР 14-15)");
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-
-            DemonstrateVisitorPattern();
-
-            Logger.Instance.Info(SourceFilePath, "==================================================");
-            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Visitor (ЛР 14-15)");
+            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна State");
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "\n");
 
@@ -380,6 +360,47 @@ namespace Traktor
                 Logger.Instance.Error(SourceFilePath, $"Visitor Demo: Ошибка при демонстрации Visitor: {ex.Message}", ex);
             }
             Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Visitor ---");
+            Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
+        }
+
+        private static void DemonstrateStatePattern()
+        {
+            Logger.Instance.Info(SourceFilePath, "--- Начало демонстрации паттерна State ---");
+            try
+            {
+                // 1. Создаем Контекст (наш MockControlUnit)
+                var mockContext = new MockControlUnit(); 
+
+                // 2. Демонстрируем поведение в начальном состоянии ("Остановлен")
+                Logger.Instance.Info(SourceFilePath, "State Demo: --- Текущее состояние: Остановлен ---");
+                mockContext.RequestSimulationStep(); 
+                mockContext.RequestStop();           
+
+                // 3. Запрашиваем старт
+                Logger.Instance.Info(SourceFilePath, "State Demo: Запрос на старт...");
+                var target = new Coordinates(10, 20);
+                var implement = ImplementType.Plough;
+                mockContext.RequestStart(target, implement, null);
+
+                // 4. Демонстрируем поведение в состоянии "Работает"
+                Logger.Instance.Info(SourceFilePath, "State Demo: --- Текущее состояние: Работает (ожидается) ---");
+                mockContext.RequestSimulationStep(); 
+                mockContext.RequestSimulationStep();
+                mockContext.RequestStart(target, implement, null); 
+
+                // 5. Запрашиваем остановку
+                Logger.Instance.Info(SourceFilePath, "State Demo: Запрос на остановку...");
+                mockContext.RequestStop();
+
+                // 6. Демонстрируем поведение в состоянии "Остановлен" снова
+                Logger.Instance.Info(SourceFilePath, "State Demo: --- Текущее состояние: Остановлен (ожидается) ---");
+                mockContext.RequestSimulationStep(); 
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.Error(SourceFilePath, $"State Demo: Ошибка при демонстрации State: {ex.Message}", ex);
+            }
+            Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна State ---");
             Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
         }
     }
