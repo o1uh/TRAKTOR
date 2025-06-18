@@ -6,8 +6,10 @@ using Traktor.ComputerVision;
 using Traktor.Core;
 using Traktor.DataModels;
 using Traktor.Decorators;
+using Traktor.Facades;
 using Traktor.FieldElements;
 using Traktor.FieldElements;
+using Traktor.Flyweights;
 using Traktor.Implements;
 using Traktor.Interfaces; 
 using Traktor.MementoPattern;
@@ -15,14 +17,13 @@ using Traktor.Mocks;
 using Traktor.Mocks;      
 using Traktor.Navigation;
 using Traktor.Observers;
+using Traktor.OperationExecutors;
+using Traktor.Operations;
 using Traktor.Proxies;
 using Traktor.Sensors;
 using Traktor.States;
 using Traktor.TaskComponents;
 using Traktor.Visitors;
-using Traktor.Facades;
-using Traktor.OperationExecutors;
-using Traktor.Operations;
 
 namespace Traktor
 {
@@ -56,6 +57,17 @@ namespace Traktor
 
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Bridge");
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "\n");
+
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "Начало демонстрации паттерна Flyweight");
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+
+            DemonstrateFlyweightPattern(); 
+
+            Logger.Instance.Info(SourceFilePath, "==================================================");
+            Logger.Instance.Info(SourceFilePath, "Конец демонстрации паттерна Flyweight");
             Logger.Instance.Info(SourceFilePath, "==================================================");
             Logger.Instance.Info(SourceFilePath, "\n");
 
@@ -595,6 +607,54 @@ namespace Traktor
                 Logger.Instance.Error(SourceFilePath, $"Bridge Demo: Ошибка при демонстрации Bridge: {ex.Message}", ex);
             }
             Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Bridge ---");
+            Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
+        }
+
+        private static void DemonstrateFlyweightPattern()
+        {
+            Logger.Instance.Info(SourceFilePath, "--- Начало демонстрации паттерна Flyweight ---");
+            try
+            {
+                var factory = new FieldObjectTypeFactory();
+                var fieldObjectsData = new[]
+                {
+                    new { TN = "Камень", Tex = "rock_texture.png", Col = ConsoleColor.Gray, ID = "R001", Lat = 55.1, Lon = 37.1 },
+                    new { TN = "Пшеница", Tex = "wheat_texture.png", Col = ConsoleColor.Yellow, ID = "W001", Lat = 55.2, Lon = 37.2 },
+                    new { TN = "Камень", Tex = "rock_texture.png", Col = ConsoleColor.Gray, ID = "R002", Lat = 55.3, Lon = 37.3 }, // Тот же тип "Камень"
+                    new { TN = "Сорняк", Tex = "weed_texture.png", Col = ConsoleColor.Green, ID = "D001", Lat = 55.4, Lon = 37.4 },
+                    new { TN = "Пшеница", Tex = "wheat_texture.png", Col = ConsoleColor.Yellow, ID = "W002", Lat = 55.5, Lon = 37.5 }  // Тот же тип "Пшеница"
+                };
+
+                List<IFieldObjectType> flyweightsUsed = new List<IFieldObjectType>();
+
+                Logger.Instance.Info(SourceFilePath, "Flyweight Demo: Создание/получение и 'отображение' объектов на поле...");
+                foreach (var data in fieldObjectsData)
+                {
+                    IFieldObjectType fieldObject = factory.GetFlyweight(data.TN, data.Tex, data.Col);
+                    flyweightsUsed.Add(fieldObject);
+
+                    Coordinates currentPosition = new Coordinates(data.Lat, data.Lon);
+                    Logger.Instance.Info(SourceFilePath, $"Flyweight Demo (Клиент): Запрос на отображение объекта ID='{data.ID}' с типом '{data.TN}' в {currentPosition}");
+                    fieldObject.Display(currentPosition, data.ID);
+                    Logger.Instance.Debug(SourceFilePath, $"  Внутреннее состояние приспособленца: {fieldObject.GetIntrinsicStateDescription()}");
+                }
+
+                Logger.Instance.Info(SourceFilePath, $"Flyweight Demo: Всего создано/запрошено объектов: {fieldObjectsData.Length}");
+                Logger.Instance.Info(SourceFilePath, $"Flyweight Demo: Уникальных объектов-приспособленцев в фабрике: {factory.GetFlyweightsCount()}");
+
+                if (flyweightsUsed.Count >= 5) // Убедимся, что у нас достаточно элементов для проверки
+                {
+                    bool stonesAreSameInstance = Object.ReferenceEquals(flyweightsUsed[0], flyweightsUsed[2]);
+                    bool wheatsAreSameInstance = Object.ReferenceEquals(flyweightsUsed[1], flyweightsUsed[4]);
+                    Logger.Instance.Info(SourceFilePath, $"Flyweight Demo: Экземпляр 'Камень' для R001 и R002 один и тот же: {stonesAreSameInstance}");
+                    Logger.Instance.Info(SourceFilePath, $"Flyweight Demo: Экземпляр 'Пшеница' для W001 и W002 один и тот же: {wheatsAreSameInstance}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.Error(SourceFilePath, $"Flyweight Demo: Ошибка при демонстрации Flyweight: {ex.Message}", ex);
+            }
+            Logger.Instance.Info(SourceFilePath, "--- Конец демонстрации паттерна Flyweight ---");
             Logger.Instance.Info(SourceFilePath, "--------------------------------------------------");
         }
     }
